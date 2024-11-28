@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Card, Prediction, PredictionResult } from '../types/card';
+import type { Card, Prediction, PredictionResult as PredictionResultType } from '../types/card';
 
 interface PredictionResultProps {
     prediction: Prediction;
     actual: Card;
-    result: PredictionResult;
+    result: PredictionResultType;
 }
 
 export const PredictionResult: React.FC<PredictionResultProps> = ({ prediction, actual, result }) => {
-    // Функция для форматирования названия масти
     const formatSuit = (suit: string) => {
         const suits = {
             hearts: '♥ Червы',
@@ -21,78 +20,70 @@ export const PredictionResult: React.FC<PredictionResultProps> = ({ prediction, 
         return suits[suit as keyof typeof suits] || suit;
     };
 
-    // Функция для форматирования цвета
     const formatColor = (color: string) => {
         return color === 'red' ? '🔴 Красный' : '⚫ Черный';
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
-            {/* Секция предсказания */}
-            <div className="space-y-2">
-                <h3 className="font-bold text-lg text-gray-700">Предсказание:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-xl 
+            border border-gray-100 space-y-6 hover:shadow-2xl transition-all duration-500">
+            <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Предсказание:</h3>
+                <div className="grid grid-cols-2 gap-4">
                     {prediction.color && (
-                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600">Цвет:</span>
-                            <span className="font-medium">{formatColor(prediction.color)}</span>
+                        <div className="prediction-item bg-white/70">
+                            <span className="text-gray-600 font-medium">Цвет:</span>
+                            <span className="font-semibold">{formatColor(prediction.color)}</span>
                         </div>
                     )}
                     {prediction.suit && (
-                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600">Масть:</span>
-                            <span className="font-medium">{formatSuit(prediction.suit)}</span>
+                        <div className="prediction-item bg-white/70">
+                            <span className="text-gray-600 font-medium">Масть:</span>
+                            <span className="font-semibold">{formatSuit(prediction.suit)}</span>
                         </div>
                     )}
                     {prediction.rank && (
-                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600">Номинал:</span>
-                            <span className="font-medium">{prediction.rank}</span>
+                        <div className="prediction-item bg-white/70">
+                            <span className="text-gray-600 font-medium">Номинал:</span>
+                            <span className="font-semibold">{prediction.rank}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Секция результата */}
-            <div className="space-y-2">
-                <h3 className="font-bold text-lg text-gray-700">Результат:</h3>
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-blue-50 p-3 rounded">
-                        <span className="font-medium text-blue-700">Итого очков:</span>
-                        <span className="text-2xl font-bold text-blue-600">+{result.totalPoints}</span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                        {result.colorMatch && prediction.color && (
-                            <div className="flex justify-between items-center bg-green-50 p-2 rounded">
-                                <span>Цвет угадан</span>
-                                <span className="font-medium text-green-600">+1 очко</span>
-                            </div>
-                        )}
-                        {result.suitMatch && prediction.suit && (
-                            <div className="flex justify-between items-center bg-green-50 p-2 rounded">
-                                <span>Масть угадана</span>
-                                <span className="font-medium text-green-600">+3 очка</span>
-                            </div>
-                        )}
-                        {result.rankMatch && prediction.rank && !prediction.suit && (
-                            <div className="flex justify-between items-center bg-green-50 p-2 rounded">
-                                <span>Номинал угадан</span>
-                                <span className="font-medium text-green-600">+8 очков</span>
-                            </div>
-                        )}
-                        {(result.suitMatch && result.rankMatch && prediction.suit && prediction.rank) && (
-                            <div className="flex justify-between items-center bg-purple-50 p-2 rounded">
-                                <span>Масть и номинал угаданы</span>
-                                <span className="font-medium text-purple-600">+15 очков</span>
-                            </div>
-                        )}
-                        {(!result.suitMatch || !result.rankMatch) && prediction.suit && prediction.rank && (
-                            <div className="flex justify-between items-center bg-red-50 p-2 rounded">
-                                <span>Масть и номинал должны быть угаданы оба</span>
-                                <span className="font-medium text-red-600">+0 очков</span>
-                            </div>
-                        )}
-                    </div>
+            <div className="space-y-4">
+                <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Результат:</h3>
+                <div className="space-y-3">
+                    {result.colorMatch && prediction.color && (
+                        <div className="prediction-item bg-gradient-to-r from-green-50 to-green-100/50">
+                            <span className="font-medium">Цвет угадан</span>
+                            <span className="font-bold text-green-600">+1 очко</span>
+                        </div>
+                    )}
+                    {result.suitMatch && prediction.suit && !prediction.rank && (
+                        <div className="prediction-item bg-gradient-to-r from-green-50 to-green-100/50">
+                            <span className="font-medium">Масть угадана</span>
+                            <span className="font-bold text-green-600">+3 очка</span>
+                        </div>
+                    )}
+                    {result.rankMatch && prediction.rank && !prediction.suit && (
+                        <div className="prediction-item bg-gradient-to-r from-green-50 to-green-100/50">
+                            <span className="font-medium">Номинал угадан</span>
+                            <span className="font-bold text-green-600">+8 очков</span>
+                        </div>
+                    )}
+                    {(result.suitMatch && result.rankMatch && prediction.suit && prediction.rank) && (
+                        <div className="prediction-item bg-gradient-to-r from-purple-50 to-purple-100/50">
+                            <span className="font-medium">Масть и номинал угаданы</span>
+                            <span className="font-bold text-purple-600">+15 очков</span>
+                        </div>
+                    )}
+                    {(!result.suitMatch || !result.rankMatch) && prediction.suit && prediction.rank && (
+                        <div className="prediction-item bg-gradient-to-r from-red-50 to-red-100/50">
+                            <span className="font-medium">Масть и номинал должны быть угаданы оба</span>
+                            <span className="font-bold text-red-600">+0 очков</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

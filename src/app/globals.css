@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .card-base {
+    @apply w-[280px] h-[400px] rounded-3xl border-[12px] shadow-2xl 
+           transform transition-all duration-500 hover:shadow-blue-100/50;
+  }
+  
+  .button-base {
+    @apply flex items-center justify-center p-6 rounded-2xl border-2 
+           transition-all duration-300 shadow-lg hover:shadow-xl 
+           hover:-translate-y-1;
+  }
+  
+  .button-active {
+    @apply border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50 
+           shadow-blue-100;
+  }
+  
+  .button-inactive {
+    @apply border-gray-200 hover:border-blue-300 
+           bg-gradient-to-br from-white to-gray-50/30;
+  }
+  
+  .prediction-item {
+    @apply flex justify-between items-center p-4 rounded-xl
+           shadow-sm backdrop-blur-sm transition-all duration-300
+           hover:shadow-md;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -17,5 +46,11 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  background-image: radial-gradient(circle at 50% 50%, 
+    rgba(100, 149, 237, 0.1) 0%, 
+    rgba(100, 149, 237, 0.05) 25%, 
+    transparent 50%
+  );
+  min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
 }
