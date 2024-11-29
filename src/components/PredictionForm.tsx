@@ -1,61 +1,34 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { CardColor, CardRank, CardSuit, PredictionMode, Prediction } from '../types';
+import { CardRank, CardSuit, CardColor, Prediction } from '../types/card';
+import { GAME_MODES, SUITS, RANKS, COLORS } from '../constants/game';
 
 interface PredictionFormProps {
     onSubmit: (prediction: Prediction) => void;
 }
 
-/**
- * Компонент формы для предсказания карт
- * 
- * Основные режимы:
- * 1. Выбор цвета (красный/черный) - 1 очко
- * 2. Выбор масти (червы/бубны/трефы/пики) - 3 очка
- * 3. Выбор номинала (2-10, J, Q, K, A) - 8 очков
- * 4. Полное предсказание (масть + номинал) - 15 очков
- * 
- * Стилевые особенности:
- * - Размеры карточек: aspect-ratio 4:3
- * - Отступы между карточками: gap-6
- * - Размер иконок: text-7xl (масти), text-4xl (меню)
- * - Размер текста: text-xl (масти), text-base (меню)
- * 
- * Цветовая схема:
- * - Красные масти (червы, бубны): #FF0000
- * - Черные масти (трефы, пики): #6B4E9D
- * - Фон карточек: белый с hover эффектом
- * - Рамка: светло-серая (border-gray-100)
- * 
- * Интерактивность:
- * - Hover эффект: легкое затемнение фона
- * - Анимация при наведении: 300ms
- * - Тень при наведении
- * 
- * @param {PredictionFormProps} props - Пропсы компонента
- * @param {function} props.onSubmit - Функция обработки отправки формы
- * @returns {JSX.Element} Форма предсказания
- */
-export const PredictionForm = ({ onSubmit }: PredictionFormProps) => {
-    const [mode, setMode] = useState<PredictionMode>(null);
-    const [prediction, setPrediction] = useState<Prediction>({});
+export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit }) => {
+    const [mode, setMode] = useState<'color' | 'suit' | 'rank' | 'full' | null>(null);
+    const [prediction, setPrediction] = useState<Prediction>({ mode: null });
 
-    const handleModeChange = (newMode: PredictionMode) => {
+    const handleModeChange = (newMode: 'color' | 'suit' | 'rank' | 'full') => {
         setMode(newMode);
-        setPrediction({});
+        setPrediction({ mode: newMode });
     };
 
     const handleSubmit = () => {
         if (canSubmit()) {
             onSubmit(prediction);
             setMode(null);
-            setPrediction({});
+            setPrediction({ mode: null });
         }
     };
 
     const canSubmit = () => {
-        switch (mode) {
+        if (!prediction.mode) return false;
+        
+        switch (prediction.mode) {
             case 'color':
                 return !!prediction.color;
             case 'suit':
@@ -69,194 +42,189 @@ export const PredictionForm = ({ onSubmit }: PredictionFormProps) => {
         }
     };
 
-    const ranks: CardRank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-    const suitSymbols = {
-        hearts: '♥',
-        diamonds: '♦',
-        clubs: '♣',
-        spades: '♠'
-    };
-    const suitNames = {
-        hearts: 'Червы',
-        diamonds: 'Бубны',
-        clubs: 'Трефы',
-        spades: 'Пики'
-    };
-
     return (
         <div className="flex flex-col gap-4">
-            <div className="relative bg-gradient-to-br from-white to-gray-50/80 rounded-3xl 
-                          shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm
-                          w-[800px] min-h-[400px] border border-gray-100/50">
-                <div className="p-6 h-full">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-semibold text-gray-800">
-                            {!mode ? 'Выберите тип предсказания' : 
-                             mode === 'color' ? 'Выберите цвет' :
-                             mode === 'suit' ? 'Выберите масть' :
-                             mode === 'rank' ? 'Выберите номинал' : 'Масть и номинал'}
-                        </h3>
-                        {mode && (
-                            <button 
-                                onClick={() => handleModeChange(null)}
-                                className="text-blue-500 hover:text-blue-600 font-medium 
-                                         transition-all duration-200 hover:-translate-x-1"
-                            >
-                                ← Назад
-                            </button>
-                        )}
-                    </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 shadow-xl h-[400px] flex flex-col">
+                {/* Заголовок */}
+                <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-lg font-semibold text-blue-600">
+                        Сделайте предсказание
+                    </h2>
+                    {mode && (
+                        <button
+                            onClick={() => {
+                                setMode(null);
+                                setPrediction({ mode: null });
+                            }}
+                            className="text-blue-500 hover:text-blue-700 transition-colors duration-200"
+                        >
+                            ← Назад
+                        </button>
+                    )}
+                </div>
 
-                    {mode === 'suit' && (
-                        <div className="h-[300px] grid grid-cols-2 gap-6 p-4">
-                            <button onClick={() => setPrediction({ suit: 'hearts' })} 
-                                className="h-full w-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 transition-all duration-300"
-                            >
-                                <div className="text-7xl mb-4 text-red-500">❤️</div>
-                                <div className="text-xl font-medium text-gray-600">Червы</div>
-                            </button>
-                            <button onClick={() => setPrediction({ suit: 'diamonds' })} 
-                                className="h-full w-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 transition-all duration-300"
-                            >
-                                <div className="text-7xl mb-4 text-red-500">♦️</div>
-                                <div className="text-xl font-medium text-gray-600">Бубны</div>
-                            </button>
-                            <button onClick={() => setPrediction({ suit: 'clubs' })} 
-                                className="h-full w-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 transition-all duration-300"
-                            >
-                                <div className="text-7xl mb-4 text-[#6B4E9D]">♣️</div>
-                                <div className="text-xl font-medium text-gray-600">Трефы</div>
-                            </button>
-                            <button onClick={() => setPrediction({ suit: 'spades' })} 
-                                className="h-full w-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100 transition-all duration-300"
-                            >
-                                <div className="text-7xl mb-4 text-[#6B4E9D]">♠️</div>
-                                <div className="text-xl font-medium text-gray-600">Пики</div>
-                            </button>
+                {/* Основной контент */}
+                <div className="flex-1 overflow-hidden">
+                    {/* Выбор режима предсказания */}
+                    {!mode && (
+                        <div className="grid grid-cols-2 gap-3 h-full">
+                            {Object.entries(GAME_MODES).map(([key, { icon, text, points, description }]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleModeChange(key as 'color' | 'suit' | 'rank' | 'full')}
+                                    className="card-button"
+                                >
+                                    <div className="text-center p-2">
+                                        <div className="text-2xl mb-2 text-blue-500">{icon}</div>
+                                        <div className="text-base font-medium text-gray-700 mb-1">{text}</div>
+                                        <div className="text-sm font-medium text-green-500">+{points} очков</div>
+                                        <div className="text-xs text-gray-500 mt-1">{description}</div>
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     )}
 
+                    {/* Выбор цвета */}
+                    {mode === 'color' && (
+                        <div className="grid grid-cols-2 gap-4 h-full">
+                            {Object.entries(COLORS).map(([color, { icon, text }]) => (
+                                <button
+                                    key={color}
+                                    onClick={() => setPrediction({ ...prediction, color: color as CardColor })}
+                                    className={`relative bg-white rounded-xl p-3 flex flex-col items-center justify-center
+                                        transition-all duration-200 border hover:bg-blue-50/50
+                                        ${prediction.color === color 
+                                            ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                            : 'border-gray-100 hover:border-blue-200'}`}
+                                >
+                                    <span className="text-3xl mb-2 opacity-90 group-hover:opacity-100">{icon}</span>
+                                    <span className="text-sm font-medium text-gray-800">{text}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Выбор масти */}
+                    {mode === 'suit' && (
+                        <div className="grid grid-cols-2 gap-4 h-full">
+                            {Object.entries(SUITS).map(([suit, { icon, text, color }]) => (
+                                <button
+                                    key={suit}
+                                    onClick={() => setPrediction({ 
+                                        ...prediction, 
+                                        suit: suit as CardSuit,
+                                        color: (suit === 'hearts' || suit === 'diamonds') ? 'red' : 'black'
+                                    })}
+                                    className={`relative bg-white rounded-xl p-3 flex flex-col items-center justify-center
+                                        transition-all duration-200 border hover:bg-blue-50/50
+                                        ${prediction.suit === suit 
+                                            ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                            : 'border-gray-100 hover:border-blue-200'}`}
+                                >
+                                    <span className={`text-3xl mb-2 opacity-90 group-hover:opacity-100 ${color}`}>{icon}</span>
+                                    <span className="text-sm font-medium text-gray-800">{text}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Выбор номинала */}
                     {mode === 'rank' && (
-                        <div>
-                            <div className="text-sm text-gray-600 mb-2">Выберите номинал:</div>
-                            <div className="grid grid-cols-7 gap-2">
-                                {ranks.map(rank => (
+                        <div className="flex flex-col gap-2 h-full">
+                            <div className="grid grid-cols-7 gap-1.5 flex-1">
+                                {RANKS.slice(0, 7).map((rank) => (
                                     <button
                                         key={rank}
-                                        onClick={() => setPrediction({ rank: rank as CardRank })}
-                                        className={`flex items-center justify-center p-3 rounded-xl bg-white shadow-sm
-                                            hover:shadow transition-shadow ${prediction.rank === rank ? 'ring-2 ring-blue-500' : ''}`}
+                                        onClick={() => setPrediction({ ...prediction, rank: rank as CardRank })}
+                                        className={`flex items-center justify-center h-full rounded-lg bg-white
+                                            transition-all duration-200 border hover:bg-blue-50/50
+                                            ${prediction.rank === rank 
+                                                ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                                : 'border-gray-100 hover:border-blue-200'}`}
                                     >
-                                        <span className="text-sm font-medium">{rank}</span>
+                                        <span className="text-base font-medium text-gray-800">{rank}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-6 gap-1.5 flex-1">
+                                {RANKS.slice(7).map((rank) => (
+                                    <button
+                                        key={rank}
+                                        onClick={() => setPrediction({ ...prediction, rank: rank as CardRank })}
+                                        className={`flex items-center justify-center h-full rounded-lg bg-white
+                                            transition-all duration-200 border hover:bg-blue-50/50
+                                            ${prediction.rank === rank 
+                                                ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                                : 'border-gray-100 hover:border-blue-200'}`}
+                                    >
+                                        <span className="text-base font-medium text-gray-800">{rank}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {mode === 'color' && (
-                        <div className="h-[250px] grid grid-cols-2 gap-4">
-                            <button
-                                onClick={() => setPrediction({ color: 'red' })}
-                                className="h-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100"
-                            >
-                                <div className="text-6xl mb-4">🔴</div>
-                                <div className="text-xl font-medium text-gray-700">Красная</div>
-                            </button>
-                            <button
-                                onClick={() => setPrediction({ color: 'black' })}
-                                className="h-full flex flex-col items-center justify-center rounded-2xl bg-white hover:bg-gray-50 border border-gray-100"
-                            >
-                                <div className="text-6xl mb-4">⚫</div>
-                                <div className="text-xl font-medium text-gray-700">Черная</div>
-                            </button>
-                        </div>
-                    )}
-
+                    {/* Полное предсказание */}
                     {mode === 'full' && (
-                        <div className="space-y-4">
+                        <div className="grid grid-rows-2 gap-2 h-full">
+                            {/* Выбор масти */}
                             <div>
-                                <div className="text-sm text-gray-600 mb-2">Выберите масть:</div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(Object.entries(suitSymbols) as [CardSuit, string][]).map(([suit, symbol]) => (
+                                <h3 className="text-xs font-medium text-gray-700 mb-1">Выберите масть:</h3>
+                                <div className="grid grid-cols-2 gap-2 h-[calc(100%-1.25rem)]">
+                                    {Object.entries(SUITS).map(([suit, { icon, text, color }]) => (
                                         <button
                                             key={suit}
-                                            onClick={() => setPrediction({...prediction, suit})}
-                                            className={`flex items-center justify-center gap-2 p-4 rounded-2xl bg-white shadow-sm
-                                                hover:shadow transition-shadow ${prediction.suit === suit ? 'ring-2 ring-blue-500' : ''}`}
+                                            onClick={() => setPrediction({ 
+                                                ...prediction, 
+                                                suit: suit as CardSuit,
+                                                color: (suit === 'hearts' || suit === 'diamonds') ? 'red' : 'black'
+                                            })}
+                                            className={`relative bg-white rounded-lg p-2 flex flex-col items-center justify-center
+                                                transition-all duration-200 border hover:bg-blue-50/50
+                                                ${prediction.suit === suit 
+                                                    ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                                    : 'border-gray-100 hover:border-blue-200'}`}
                                         >
-                                            <span className={`text-2xl ${suit === 'hearts' || suit === 'diamonds' ? 'text-red-500' : ''}`}>
-                                                {symbol}
-                                            </span>
-                                            <span className="text-sm font-medium">{suitNames[suit]}</span>
+                                            <span className={`text-xl mb-1 opacity-90 group-hover:opacity-100 ${color}`}>{icon}</span>
+                                            <span className="text-xs font-medium text-gray-800">{text}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
+                            {/* Выбор номинала */}
                             <div>
-                                <div className="text-sm text-gray-600 mb-2">Выберите номинал:</div>
-                                <div className="grid grid-cols-7 gap-2">
-                                    {ranks.map(rank => (
+                                <h3 className="text-xs font-medium text-gray-700 mb-1">Выберите номинал:</h3>
+                                <div className="grid grid-cols-7 gap-1">
+                                    {RANKS.map((rank) => (
                                         <button
                                             key={rank}
-                                            onClick={() => setPrediction({...prediction, rank: rank as CardRank})}
-                                            className={`flex items-center justify-center p-3 rounded-xl bg-white shadow-sm
-                                                hover:shadow transition-shadow ${prediction.rank === rank ? 'ring-2 ring-blue-500' : ''}`}
+                                            onClick={() => setPrediction({ ...prediction, rank: rank as CardRank })}
+                                            className={`flex items-center justify-center p-2 rounded-lg bg-white
+                                                transition-all duration-200 border hover:bg-blue-50/50
+                                                ${prediction.rank === rank 
+                                                    ? 'border-blue-400 shadow-md bg-blue-50/30' 
+                                                    : 'border-gray-100 hover:border-blue-200'}`}
                                         >
-                                            <span className="text-sm font-medium">{rank}</span>
+                                            <span className="text-sm font-medium text-gray-800">{rank}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {!mode && (
-                        <div className="grid grid-cols-2 gap-2 p-4">
-                            <button onClick={() => handleModeChange('color')} 
-                                className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100">
-                                <span className="text-4xl mb-4">🎨</span>
-                                <span className="text-base font-medium text-gray-700">Угадать цвет</span>
-                                <span className="text-sm text-green-500 mt-2">+1 очко</span>
-                            </button>
-                            <button onClick={() => handleModeChange('suit')} 
-                                className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100">
-                                <span className="text-4xl mb-4">♠️</span>
-                                <span className="text-base font-medium text-gray-700">Угадать масть</span>
-                                <span className="text-sm text-green-500 mt-2">+3 очка</span>
-                            </button>
-                            <button onClick={() => handleModeChange('rank')} 
-                                className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100">
-                                <span className="text-4xl mb-4">A</span>
-                                <span className="text-base font-medium text-gray-700">Угадать номинал</span>
-                                <span className="text-sm text-green-500 mt-2">+8 очков</span>
-                            </button>
-                            <button onClick={() => handleModeChange('full')} 
-                                className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white hover:bg-gray-50 border border-gray-100">
-                                <span className="text-4xl mb-4">🃏</span>
-                                <span className="text-base font-medium text-gray-700">Масть и номинал</span>
-                                <span className="text-sm text-green-500 mt-2">+15 очков</span>
-                            </button>
                         </div>
                     )}
                 </div>
             </div>
 
-            {mode && (
-                <button
-                    onClick={handleSubmit}
-                    disabled={!canSubmit()}
-                    className="w-full p-4 rounded-2xl font-medium text-lg
-                        bg-gradient-to-r from-blue-500 to-blue-600
-                        disabled:from-gray-100 disabled:to-gray-100 disabled:text-gray-400
-                        enabled:text-white enabled:hover:from-blue-600 enabled:hover:to-blue-700
-                        transition-all duration-200 disabled:cursor-not-allowed
-                        shadow-sm enabled:hover:shadow-md enabled:hover:-translate-y-0.5"
-                >
-                    Подтвердить выбор
-                </button>
-            )}
+            {/* Кнопка подтверждения */}
+            <button
+                onClick={handleSubmit}
+                className={`button-base ${!canSubmit() ? 'button-inactive' : ''}`}
+                disabled={!canSubmit()}
+            >
+                Сделать выбор
+            </button>
         </div>
     );
 }; 

@@ -2,55 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply min-h-screen;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @layer components {
-  .card-base {
-    @apply w-[280px] h-[400px] rounded-3xl border-[12px] shadow-2xl 
-           transform transition-all duration-500 hover:shadow-blue-100/50;
+  .card-container {
+    @apply w-[280px] h-[400px];
+    perspective: 1000px;
+  }
+
+  .card-wrapper {
+    @apply relative w-full h-full;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+
+  .card-wrapper.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .card-face {
+    @apply absolute w-full h-full rounded-3xl border-[12px] shadow-2xl bg-white;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+  }
+
+  .card-front {
+    transform: rotateY(0deg);
+    -webkit-transform: rotateY(0deg);
+    z-index: 2;
+  }
+
+  .card-back {
+    transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
+    z-index: 1;
   }
   
+  .card-button {
+    @apply h-full w-full flex flex-col items-center justify-center 
+           rounded-2xl bg-white hover:bg-blue-50
+           border border-gray-100 transition-all duration-300
+           hover:border-blue-200;
+  }
+
   .button-base {
-    @apply flex items-center justify-center p-6 rounded-2xl border-2 
-           transition-all duration-300 shadow-lg hover:shadow-xl 
-           hover:-translate-y-1;
-  }
-  
-  .button-active {
-    @apply border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50 
-           shadow-blue-100;
+    @apply flex items-center justify-center p-4 rounded-xl
+           transition-all duration-200 
+           bg-blue-500 hover:bg-blue-600
+           text-white font-medium
+           disabled:opacity-50 disabled:cursor-not-allowed
+           disabled:bg-gray-400 disabled:hover:bg-gray-400;
   }
   
   .button-inactive {
-    @apply border-gray-200 hover:border-blue-300 
-           bg-gradient-to-br from-white to-gray-50/30;
+    @apply opacity-70 bg-gray-400 hover:bg-gray-400 cursor-not-allowed;
   }
   
   .prediction-item {
     @apply flex justify-between items-center p-4 rounded-xl
-           shadow-sm backdrop-blur-sm transition-all duration-300
-           hover:shadow-md;
+           shadow-sm backdrop-blur-sm transition-all duration-200
+           hover:shadow-md bg-white/95 border border-gray-100
+           hover:border-blue-200;
   }
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 3D-трансформации */
+.perspective-1000 {
+  perspective: 1000px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.transform-style-3d {
+  transform-style: preserve-3d;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  background-image: radial-gradient(circle at 50% 50%, 
-    rgba(100, 149, 237, 0.1) 0%, 
-    rgba(100, 149, 237, 0.05) 25%, 
-    transparent 50%
-  );
-  min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
 }

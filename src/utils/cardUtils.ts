@@ -1,4 +1,5 @@
-import { Card, CardSuit, CardRank, CardColor, Prediction, PredictionResult } from '../types/card';
+import { Card, CardColor, CardRank, CardSuit, Prediction, PredictionResult } from '../types/game';
+import { GAME_MODES } from '../constants/game';
 
 // Создание новой колоды карт
 export function createDeck(): Card[] {
@@ -30,71 +31,43 @@ export function shuffleDeck(deck: Card[]): Card[] {
     return shuffled;
 }
 
-// Расчет вероятностей для текущей колоды
-export function calculateProbabilities(deck: Card[]) {
-    const total = deck.length;
-    const redCards = deck.filter(card => card.color === 'red').length;
-    const blackCards = total - redCards;
-
-    // Подсчет карт каждой масти
-    const suitCounts = deck.reduce((acc, card) => {
-        acc[card.suit] = (acc[card.suit] || 0) + 1;
-        return acc;
-    }, {} as Record<CardSuit, number>);
-
-    // Подсчет карт каждого номинала
-    const rankCounts = deck.reduce((acc, card) => {
-        acc[card.rank] = (acc[card.rank] || 0) + 1;
-        return acc;
-    }, {} as Record<CardRank, number>);
-
-    return {
-        color: {
-            red: (redCards / total) * 100,
-            black: (blackCards / total) * 100
-        },
-        suits: Object.entries(suitCounts).reduce((acc, [suit, count]) => {
-            acc[suit as CardSuit] = (count / total) * 100;
-            return acc;
-        }, {} as Record<CardSuit, number>),
-        ranks: Object.entries(rankCounts).reduce((acc, [rank, count]) => {
-            acc[rank as CardRank] = (count / total) * 100;
-            return acc;
-        }, {} as Record<CardRank, number>)
-    };
-}
-
-// Проверка предсказания и подсчет очков по новой системе
+// Проверка предсказания и подсчет очков
 export function checkPrediction(prediction: Prediction, actual: Card): PredictionResult {
     // Определяем тип предсказания и проверяем совпадения
-    const hasColorPrediction = prediction.color !== undefined;
-    const hasSuitPrediction = prediction.suit !== undefined;
-    const hasRankPrediction = prediction.rank !== undefined;
+    const hasColorPrediction = prediction.mode === 'color';
+    const hasSuitPrediction = prediction.mode === 'suit' || prediction.mode === 'full';
+    const hasRankPrediction = prediction.mode === 'rank' || prediction.mode === 'full';
 
     // Проверяем совпадения
-    const colorMatch = prediction.color === actual.color;
-    const suitMatch = prediction.suit === actual.suit;
-    const rankMatch = prediction.rank === actual.rank;
+    const colorMatch = hasColorPrediction ? prediction.color === actual.color : false;
+    const suitMatch = hasSuitPrediction ? prediction.suit === actual.suit : false;
+    const rankMatch = hasRankPrediction ? prediction.rank === actual.rank : false;
     
     let totalPoints = 0;
+    let correct = false;
+    let message = '';
     
     // Начисляем очки в зависимости от типа предсказания
-    if (hasColorPrediction && !hasSuitPrediction && !hasRankPrediction) {
-        // Только цвет: +1 очко
-        if (colorMatch) totalPoints = 1;
-    } 
-    else if (!hasColorPrediction && hasSuitPrediction && !hasRankPrediction) {
-        // Только масть: +3 очка
-        if (suitMatch) totalPoints = 3;
-    }
-    else if (!hasColorPrediction && !hasSuitPrediction && hasRankPrediction) {
-        // Только номинал: +8 очков
-        if (rankMatch) totalPoints = 8;
-    }
-    else if (hasSuitPrediction && hasRankPrediction) {
-        // Масть и номинал: +15 очков (только если оба угаданы)
-        if (suitMatch && rankMatch) {
-            totalPoints = 15;
+    if (prediction.mode) {
+        const mode = GAME_MODES[prediction.mode];
+        if (prediction.mode === 'color' && colorMatch) {
+            totalPoints = mode.points;
+            correct = true;
+            message = 'Верно! Вы угадали цвет карты!';
+        } else if (prediction.mode === 'suit' && suitMatch) {
+            totalPoints = mode.points;
+            correct = true;
+            message = 'Отлично! Вы угадали масть карты!';
+        } else if (prediction.mode === 'rank' && rankMatch) {
+            totalPoints = mode.points;
+            correct = true;
+            message = 'Великолепно! Вы угадали номинал карты!';
+        } else if (prediction.mode === 'full' && suitMatch && rankMatch) {
+            totalPoints = mode.points;
+            correct = true;
+            message = 'Невероятно! Вы угадали карту полностью!';
+        } else {
+            message = 'Неправильно! Попробуйте еще раз.';
         }
     }
     
@@ -102,6 +75,8 @@ export function checkPrediction(prediction: Prediction, actual: Card): Predictio
         colorMatch,
         suitMatch,
         rankMatch,
-        totalPoints
+        totalPoints,
+        correct,
+        message
     };
 } 

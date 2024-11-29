@@ -1,46 +1,46 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card as CardComponent } from './Card';
 import { PredictionForm } from './PredictionForm';
 import { PredictionResult } from './PredictionResult';
-import { GameState } from '../types/game';
-import { Prediction } from '../types/card';
-import { createDeck, shuffleDeck, checkPrediction } from '../utils/cardUtils';
+import { useGameLogic } from '../hooks/useGameLogic';
+import { Prediction } from '../types/game';
+import { Card } from '../types/card';
 
 export const Game: React.FC = () => {
-    const [gameState, setGameState] = useState<GameState>({
-        players: [
-            { id: 1, name: 'Игрок 1', score: 0 },
-            { id: 2, name: 'Игрок 2', score: 0 }
-        ],
-        currentPlayerIndex: 0,
-        deck: shuffleDeck(createDeck()),
-        currentCard: undefined,
-        isCardRevealed: false,
-        gameOver: false
-    });
+    const { gameState, startGame, makePrediction } = useGameLogic(2);
+    const [isFlipping, setIsFlipping] = useState(false);
+    const [currentCard, setCurrentCard] = useState<Card | undefined>(undefined);
+
+    useEffect(() => {
+        startGame(2);
+    }, []);
+
+    useEffect(() => {
+        if (gameState.deck.length > 0) {
+            setCurrentCard(gameState.deck[0]);
+        }
+    }, [gameState.deck]);
 
     const handlePrediction = (prediction: Prediction) => {
-        if (gameState.deck.length === 0) return;
-
-        const currentCard = gameState.deck[0];
-        const result = checkPrediction(prediction, currentCard);
+        if (isFlipping) return;
         
-        const newPlayers = [...gameState.players];
-        newPlayers[gameState.currentPlayerIndex].score += result.totalPoints;
-
-        setGameState(prev => ({
-            ...prev,
-            players: newPlayers,
-            currentCard: currentCard,
-            lastPrediction: prediction,
-            lastResult: result,
-            deck: prev.deck.slice(1),
-            isCardRevealed: true,
-            currentPlayerIndex: (prev.currentPlayerIndex + 1) % 2,
-            gameOver: prev.deck.length <= 1
-        }));
+        setIsFlipping(true);
+        
+        // Показываем карту на 2 секунды
+        const card = document.querySelector('.card-component');
+        if (card) {
+            card.classList.add('flipped');
+        }
+        
+        setTimeout(() => {
+            if (card) {
+                card.classList.remove('flipped');
+            }
+            makePrediction(prediction);
+            setIsFlipping(false);
+        }, 2000);
     };
 
     return (
@@ -48,12 +48,11 @@ export const Game: React.FC = () => {
             <div className="flex justify-between mb-8">
                 {gameState.players.map((player, index) => (
                     <div key={player.id} 
-                        className={`p-4 rounded-xl shadow-md ${
-                            index === gameState.currentPlayerIndex 
-                                ? 'bg-blue-100 border-2 border-blue-300' 
-                                : 'bg-gray-50'
-                        }`}
-                    >
+                         className={`p-4 rounded-xl shadow-md ${
+                             index === gameState.currentPlayerIndex 
+                                 ? 'bg-blue-100 border-2 border-blue-300' 
+                                 : 'bg-gray-50'
+                         }`}>
                         <h3 className="font-bold text-lg">{player.name}</h3>
                         <p className="text-2xl font-bold text-blue-600">{player.score}</p>
                     </div>
@@ -69,54 +68,28 @@ export const Game: React.FC = () => {
 
             <div className="grid grid-cols-[400px_800px] gap-8 justify-center">
                 <div className="flex justify-center items-start">
-                    <CardComponent 
-                        card={gameState.currentCard} 
-                        isHidden={!gameState.isCardRevealed}
-                    />
+                    <div className="card-component">
+                        <CardComponent 
+                            card={currentCard}
+                            isHidden={!isFlipping}
+                        />
+                    </div>
                 </div>
-
                 <div>
-                    <PredictionForm onSubmit={handlePrediction} />
+                    <PredictionForm 
+                        onSubmit={handlePrediction}
+                        disabled={isFlipping}
+                    />
                 </div>
             </div>
 
-            {gameState.lastPrediction && gameState.currentCard && gameState.lastResult && (
+            {gameState.lastPrediction && gameState.lastResult && currentCard && (
                 <div className="mt-8 border-t pt-4">
                     <PredictionResult 
                         prediction={gameState.lastPrediction}
-                        actual={gameState.currentCard}
+                        actual={currentCard}
                         result={gameState.lastResult}
                     />
-                </div>
-            )}
-
-            {gameState.gameOver && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                    <div className="bg-white p-8 rounded-xl shadow-lg text-center">
-                        <h2 className="text-2xl font-bold mb-4">🎮 Игра окончена!</h2>
-                        <p className="text-xl mb-4">
-                            Победитель: {
-                                gameState.players.reduce((prev, current) => 
-                                    prev.score > current.score ? prev : current
-                                ).name
-                            }
-                        </p>
-                        <div className="space-y-4">
-                            {gameState.players.map(player => (
-                                <div key={player.id} className="flex justify-between items-center">
-                                    <span className="font-medium">{player.name}:</span>
-                                    <span className="text-lg font-bold text-blue-600">{player.score}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <button 
-                            onClick={() => window.location.reload()} 
-                            className="mt-6 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600
-                                transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                        >
-                            Начать новую игру
-                        </button>
-                    </div>
                 </div>
             )}
         </div>

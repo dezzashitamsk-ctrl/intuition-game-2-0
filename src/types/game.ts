@@ -1,4 +1,4 @@
-import { Card, Prediction } from './card';
+import { Card, CardSuit, CardColor, CardRank, Prediction, PredictionResult, PredictionMode } from './card';
 
 export interface Player {
     id: number;
@@ -10,9 +10,17 @@ export interface GameState {
     players: Player[];
     currentPlayerIndex: number;
     deck: Card[];
-    currentCard?: Card;
     lastPrediction?: Prediction;
-    lastResult?: any;
-    isCardRevealed: boolean;
+    lastResult?: PredictionResult;
     gameOver: boolean;
-} 
+}
+
+export type {
+    Card,
+    CardSuit,
+    CardColor,
+    CardRank,
+    Prediction,
+    PredictionResult,
+    PredictionMode
+}; 
