@@ -54,16 +54,21 @@ export function useMultiplayer() {
      * Join existing room
      */
     const joinRoom = useCallback(async (roomId: string) => {
+        console.log('[useMultiplayer] joinRoom called with roomId:', roomId);
         setIsLoading(true);
         setError(null);
 
         try {
+            console.log('[useMultiplayer] Calling multiplayerService.joinRoom...');
             const joinedRoom = await multiplayerService.joinRoom(roomId);
+            console.log('[useMultiplayer] Joined room:', joinedRoom);
             setRoom(joinedRoom);
 
             // Force refresh after a short delay to ensure we get the updated status
             setTimeout(async () => {
+                console.log('[useMultiplayer] Refreshing room data...');
                 const refreshedRoom = await multiplayerService.getRoom();
+                console.log('[useMultiplayer] Refreshed room:', refreshedRoom);
                 if (refreshedRoom) {
                     setRoom(refreshedRoom);
                 }
@@ -71,6 +76,7 @@ export function useMultiplayer() {
 
             return joinedRoom;
         } catch (err: any) {
+            console.error('[useMultiplayer] Error in joinRoom:', err);
             setError(err.message || 'Failed to join room');
             throw err;
         } finally {

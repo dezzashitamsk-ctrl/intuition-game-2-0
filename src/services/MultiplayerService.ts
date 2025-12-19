@@ -66,20 +66,38 @@ export class MultiplayerService {
      * Join existing room
      */
     async joinRoom(roomId: string): Promise<GameRoom> {
+        console.log('[MultiplayerService] Joining room:', roomId);
+
         try {
             // Check if room exists and is waiting
+            console.log('[MultiplayerService] Fetching room data...');
             const { data: room, error: fetchError } = await supabase
                 .from('game_rooms')
                 .select('*')
                 .eq('id', roomId)
                 .single();
 
-            if (fetchError) throw fetchError;
-            if (!room) throw new Error('Room not found');
-            if (room.status !== 'waiting') throw new Error('Room is not available');
-            if (room.guest_id) throw new Error('Room is full');
+            console.log('[MultiplayerService] Room fetch result:', { room, error: fetchError });
+
+            if (fetchError) {
+                console.error('[MultiplayerService] Fetch error:', fetchError);
+                throw fetchError;
+            }
+            if (!room) {
+                console.error('[MultiplayerService] Room not found');
+                throw new Error('Room not found');
+            }
+            if (room.status !== 'waiting') {
+                console.error('[MultiplayerService] Room not available, status:', room.status);
+                throw new Error('Room is not available');
+            }
+            if (room.guest_id) {
+                console.error('[MultiplayerService] Room is full');
+                throw new Error('Room is full');
+            }
 
             // Join room
+            console.log('[MultiplayerService] Updating room with guest_id:', this.userId);
             const { data, error } = await supabase
                 .from('game_rooms')
                 .update({
@@ -90,12 +108,18 @@ export class MultiplayerService {
                 .select()
                 .single();
 
-            if (error) throw error;
+            console.log('[MultiplayerService] Update result:', { data, error });
+
+            if (error) {
+                console.error('[MultiplayerService] Update error:', error);
+                throw error;
+            }
 
             this.roomId = roomId;
+            console.log('[MultiplayerService] Successfully joined room:', data);
             return data;
         } catch (error) {
-            console.error('Error joining room:', error);
+            console.error('[MultiplayerService] Error joining room:', error);
             throw error;
         }
     }

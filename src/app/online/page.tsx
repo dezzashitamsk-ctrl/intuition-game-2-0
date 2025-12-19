@@ -28,7 +28,11 @@ export default function OnlinePage() {
 
     // Auto-join if room ID in URL
     useEffect(() => {
+        console.log('[online/page] roomIdFromUrl:', roomIdFromUrl);
+        console.log('[online/page] room:', room);
+
         if (roomIdFromUrl && !room) {
+            console.log('[online/page] Auto-joining room:', roomIdFromUrl);
             handleJoinRoom(roomIdFromUrl);
         }
     }, [roomIdFromUrl]);
@@ -44,8 +48,12 @@ export default function OnlinePage() {
     };
 
     const handleJoinRoom = async (roomId: string) => {
+        console.log('[online/page] handleJoinRoom called with:', roomId);
+
+        if (!roomId.trim()) return;
+
         try {
-            await joinRoom(roomId);
+            await joinRoom(roomId.trim());
             setShowLobby(false);
         } catch (error) {
             console.error('Failed to join room:', error);
@@ -153,8 +161,8 @@ export default function OnlinePage() {
                             <div className="text-sm text-gray-400 mb-2 font-[family-name:var(--font-orbitron)]">
                                 КОД КОМНАТЫ
                             </div>
-                            <div className="text-4xl font-bold text-white font-mono">
-                                {room.id.slice(0, 8).toUpperCase()}
+                            <div className="text-2xl font-bold text-white font-mono break-all">
+                                {room.id}
                             </div>
                         </div>
 
