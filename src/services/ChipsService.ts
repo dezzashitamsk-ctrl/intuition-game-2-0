@@ -58,14 +58,14 @@ export class ChipsService {
                 const newBalance = currentChips - ROUND_BET;
                 this.playerChips.set(playerId, newBalance);
                 this.pot += ROUND_BET;
-                
+
                 const transaction = {
                     playerId,
                     amount: ROUND_BET,
                     type: 'bet' as const,
                     timestamp: Date.now()
                 };
-                
+
                 transactions.push(transaction);
                 this.transactions.push(transaction);
                 console.log(`Player ${playerId} bet ${ROUND_BET} chips. New balance: ${newBalance}`);
@@ -85,6 +85,12 @@ export class ChipsService {
             currentChips: this.playerChips.get(playerId)
         });
 
+        // Проверка на null
+        if (!predictionMode) {
+            console.log(`Invalid prediction mode for player ${playerId}`);
+            return 0;
+        }
+
         // Определяем сумму выигрыша
         let winAmount: number;
         if (predictionMode === 'full') {
@@ -101,7 +107,7 @@ export class ChipsService {
         if (winAmount > 0) {
             const currentChips = this.playerChips.get(playerId) || 0;
             const newBalance = currentChips + winAmount;
-            
+
             // Начисляем выигрыш
             this.playerChips.set(playerId, newBalance);
             // Уменьшаем банк
@@ -109,7 +115,7 @@ export class ChipsService {
 
             // Записываем транзакцию
             this.addTransaction(playerId, winAmount, 'win');
-            
+
             console.log(`Win processed for player ${playerId}:`, {
                 previousBalance: currentChips,
                 winAmount,

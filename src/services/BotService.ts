@@ -38,12 +38,12 @@ export class BotService implements IBotService {
         // На сложном уровне бот предпочитает сложные режимы
         if (this.difficulty === 'hard') {
             const weightedModes = [...modes, 'rank', 'full', 'full'];
-            return weightedModes[Math.floor(Math.random() * weightedModes.length)];
+            return weightedModes[Math.floor(Math.random() * weightedModes.length)] as keyof typeof GAME_MODES;
         }
 
         // На супер-сложном уровне бот почти всегда выбирает самые сложные режимы
         const superHardModes = [...modes, 'rank', 'full', 'full', 'full', 'full'];
-        return superHardModes[Math.floor(Math.random() * superHardModes.length)];
+        return superHardModes[Math.floor(Math.random() * superHardModes.length)] as keyof typeof GAME_MODES;
     }
 
     generatePrediction(): Prediction {

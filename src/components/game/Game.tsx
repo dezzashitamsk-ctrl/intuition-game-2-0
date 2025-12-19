@@ -27,6 +27,7 @@ export const Game: React.FC = () => {
     const [isFlipping, setIsFlipping] = useState(false);
     const [showCardFace, setShowCardFace] = useState(false);
     const [displayedCard, setDisplayedCard] = useState<CardType | undefined>(undefined);
+    const [lastRevealedCard, setLastRevealedCard] = useState<CardType | undefined>(undefined);
     const [botThinking, setBotThinking] = useState<string | null>(null);
     const [showGameOver, setShowGameOver] = useState(false);
     const [selectedDifficulty, setSelectedDifficulty] = useState<BotDifficulty>('medium');
@@ -109,6 +110,9 @@ export const Game: React.FC = () => {
 
         try {
             setIsFlipping(true);
+
+            // Сохраняем текущую карту как последнюю открытую
+            setLastRevealedCard(displayedCard);
 
             // Шаг 1: Переворачиваем карту (показываем лицо)
             setShowCardFace(true);
@@ -421,11 +425,11 @@ export const Game: React.FC = () => {
                     </div>
 
                     {/* Результат предсказания */}
-                    {gameState.lastPrediction && gameState.lastResult && displayedCard ? (
+                    {gameState.lastPrediction && gameState.lastResult && lastRevealedCard ? (
                         <div className="mt-8 prediction-container">
                             <PredictionResult
                                 prediction={gameState.lastPrediction}
-                                actual={displayedCard}
+                                actual={lastRevealedCard}
                                 result={gameState.lastResult}
                                 chipsWon={currentPlayer?.chips - (currentPlayer?.previousScore ?? 0)}
                             />

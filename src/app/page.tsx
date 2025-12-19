@@ -1,14 +1,19 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import { LoadingScreen } from '../components/ui/LoadingScreen';
-import { ThemeToggle } from '../components/ui/ThemeToggle';
 
-const Game = dynamic(() => import('../components/game/Game').then(mod => ({ default: mod.Game })), {
+const Game = dynamicImport(() => import('../components/game/Game').then(mod => ({ default: mod.Game })), {
     ssr: false,
-    loading: () => <LoadingScreen />,
-    suspense: false
+    loading: () => <LoadingScreen />
 });
+
+const ThemeToggle = dynamicImport(() => import('../components/ui/ThemeToggle').then(mod => ({ default: mod.ThemeToggle })), {
+    ssr: false
+});
+
+// Отключаем статическую генерацию для этой страницы
+export const dynamic = 'force-dynamic';
 
 export default function Home() {
     return (
