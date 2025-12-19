@@ -1,0 +1,76 @@
+:root {
+  /* === Цветовая Палитра === */
+  /* Основные цвета */
+  --bg-primary: #111111;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #FFF1F2;
+  --text-secondary: rgba(255, 241, 242, 0.7);
+  --text-tertiary: rgba(255, 241, 242, 0.4);
+
+  /* Акцентные цвета */
+  --accent-red: #CC3333;
+  --accent-red-light: rgba(204, 51, 51, 0.5);
+  --accent-dark: #333333;
+  --accent-green: #10b981;
+  --accent-blue: #3b82f6;
+
+  /* Цвета мастей */
+  --suit-red: #CC3333;
+  --suit-black: #333333;
+
+  /* === Glassmorphism === */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg-strong: rgba(255, 255, 255, 0.15);
+  --glass-bg-light: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-strong: rgba(255, 255, 255, 0.3);
+
+  /* === Тени === */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 30px rgba(204, 51, 51, 0.5);
+  --shadow-glow-green: 0 0 30px rgba(16, 185, 129, 0.5);
+
+  /* === Размеры Карт === */
+  --card-width-sm: 200px;
+  --card-height-sm: 280px;
+  --card-width-md: 300px;
+  --card-height-md: 420px;
+  --card-perspective: 1000px;
+
+  /* === Border Radius === */
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 2.5rem;
+  --radius-3xl: 3rem;
+
+  /* === Анимации === */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-card-flip: 700ms;
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* === Z-Index === */
+  --z-background: -10;
+  --z-base: 0;
+  --z-card: 10;
+  --z-overlay: 50;
+  --z-modal: 100;
+
+  /* === Backdrop Blur === */
+  --blur-sm: 10px;
+  --blur-md: 20px;
+  --blur-lg: 30px;
+}
+
+/* === Темная тема (по умолчанию) === */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}

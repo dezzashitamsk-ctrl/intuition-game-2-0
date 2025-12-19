@@ -1,6 +1,6 @@
 import React from 'react';
-import { SUITS } from '../constants/game';
-import { CardSuit } from '../types/game';
+import { SUITS } from '../../constants/game';
+import { CardSuit } from '../../types/game';
 
 interface SuitSelectorProps {
     onSelect: (suit: CardSuit) => void;

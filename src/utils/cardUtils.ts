@@ -1,17 +1,14 @@
-import { Card, CardColor, CardRank, CardSuit, Prediction, PredictionResult } from '../types/game';
+import { Card, CardColor, CardRank, CardSuit, Prediction, PredictionResult } from '../types/card';
 import { GAME_MODES } from '../constants/game';
 
 // Создание новой колоды карт
 export function createDeck(): Card[] {
-    // Определяем все возможные масти и номиналы
     const suits: CardSuit[] = ["hearts", "diamonds", "clubs", "spades"];
     const ranks: CardRank[] = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
     
     const deck: Card[] = [];
     
-    // Создаем карты для каждой комбинации масти и номинала
     for (const suit of suits) {
-        // Определяем цвет карты на основе масти
         const color: CardColor = (suit === "hearts" || suit === "diamonds") ? "red" : "black";
         for (const rank of ranks) {
             deck.push({ suit, rank, color });
@@ -21,7 +18,7 @@ export function createDeck(): Card[] {
     return deck;
 }
 
-// Перемешивание колоды (алгоритм Фишера-Йетса)
+// Перемешивание колоды
 export function shuffleDeck(deck: Card[]): Card[] {
     const shuffled = [...deck];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -31,46 +28,60 @@ export function shuffleDeck(deck: Card[]): Card[] {
     return shuffled;
 }
 
-// Проверка предсказания и подсчет очков
+// Проверка предсказания
 export function checkPrediction(prediction: Prediction, actual: Card): PredictionResult {
-    // Определяем тип предсказания и проверяем совпадения
-    const hasColorPrediction = prediction.mode === 'color';
-    const hasSuitPrediction = prediction.mode === 'suit' || prediction.mode === 'full';
-    const hasRankPrediction = prediction.mode === 'rank' || prediction.mode === 'full';
+    let correct = false;
+    let totalPoints = 0;
+    let message = '';
 
     // Проверяем совпадения
-    const colorMatch = hasColorPrediction ? prediction.color === actual.color : false;
-    const suitMatch = hasSuitPrediction ? prediction.suit === actual.suit : false;
-    const rankMatch = hasRankPrediction ? prediction.rank === actual.rank : false;
-    
-    let totalPoints = 0;
-    let correct = false;
-    let message = '';
-    
-    // Начисляем очки в зависимости от типа предсказания
-    if (prediction.mode) {
-        const mode = GAME_MODES[prediction.mode];
-        if (prediction.mode === 'color' && colorMatch) {
-            totalPoints = mode.points;
-            correct = true;
-            message = 'Верно! Вы угадали цвет карты!';
-        } else if (prediction.mode === 'suit' && suitMatch) {
-            totalPoints = mode.points;
-            correct = true;
-            message = 'Отлично! Вы угадали масть карты!';
-        } else if (prediction.mode === 'rank' && rankMatch) {
-            totalPoints = mode.points;
-            correct = true;
-            message = 'Великолепно! Вы угадали номинал карты!';
-        } else if (prediction.mode === 'full' && suitMatch && rankMatch) {
-            totalPoints = mode.points;
-            correct = true;
-            message = 'Невероятно! Вы угадали карту полностью!';
-        } else {
-            message = 'Неправильно! Попробуйте еще раз.';
-        }
+    const colorMatch = prediction.color === actual.color;
+    const suitMatch = prediction.suit === actual.suit;
+    const rankMatch = prediction.rank === actual.rank;
+
+    // Проверяем в зависимости от режима
+    switch (prediction.mode) {
+        case 'color':
+            if (colorMatch) {
+                correct = true;
+                totalPoints = GAME_MODES.color.points;
+                message = '🎯 В точку! Цвет угадан!';
+            } else {
+                message = `❌ Упс! Это была ${actual.color === 'red' ? 'красная' : 'черная'} карта`;
+            }
+            break;
+
+        case 'suit':
+            if (suitMatch) {
+                correct = true;
+                totalPoints = GAME_MODES.suit.points;
+                message = '🎯 Браво! Масть угадана!';
+            } else {
+                message = `❌ Мимо! Это была карта масти ${actual.suit}`;
+            }
+            break;
+
+        case 'rank':
+            if (rankMatch) {
+                correct = true;
+                totalPoints = GAME_MODES.rank.points;
+                message = '🎯 Ва��! Номинал угадан!';
+            } else {
+                message = `❌ Не угадали! Это был(а) ${actual.rank}`;
+            }
+            break;
+
+        case 'full':
+            if (suitMatch && rankMatch) {
+                correct = true;
+                totalPoints = GAME_MODES.full.points;
+                message = '🎯 НЕВЕРОЯТНО! Полное попадание!';
+            } else {
+                message = `❌ Мимо! Это был(а) ${actual.rank} масти ${actual.suit}`;
+            }
+            break;
     }
-    
+
     return {
         colorMatch,
         suitMatch,

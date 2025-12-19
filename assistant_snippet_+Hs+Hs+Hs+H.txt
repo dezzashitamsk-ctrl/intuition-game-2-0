@@ -1,0 +1,17 @@
+1|const item = {
+2|    hidden: { 
+3|        opacity: 0,
+4|        scale: 0.3,
+5|        filter: 'brightness(0.5) blur(10px)'
+6|    },
+7|    show: { 
+8|        opacity: 1,
+9|        scale: 1,
+10|        filter: 'brightness(1) blur(0px)',
+11|        transition: {
+12|            type: "spring",
+13|            stiffness: 200,
+14|            damping: 15
+15|        }
+16|    }
+17|}; 

@@ -1,0 +1,5 @@
+1|const handleDifficultySelect = (difficulty: BotDifficulty) => {
+2|    setSelectedDifficulty(difficulty);
+3|    botService.setDifficulty(difficulty);
+4|    onStart(1);
+5|}; 

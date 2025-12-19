@@ -10,9 +10,15 @@
     "test": "jest"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.1",
+    "@supabase/supabase-js": "^2.89.0",
+    "framer-motion": "^11.15.0",
+    "gsap": "^3.12.5",
     "next": "15.0.3",
     "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106"
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "recharts": "^3.6.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@tailwindcss/nesting": "^0.0.0-insiders.565cd3e",

@@ -1,6 +1,6 @@
 import React from 'react';
-import { COLORS } from '../constants/game';
-import { CardColor } from '../types/game';
+import { COLORS } from '../../constants/game';
+import { CardColor } from '../../types/game';
 
 interface ColorSelectorProps {
     onSelect: (color: CardColor) => void;

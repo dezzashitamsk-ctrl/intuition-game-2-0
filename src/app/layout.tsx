@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Orbitron } from 'next/font/google'
 import './globals.css'
+import ClientProvider from './ClientProvider'
+import { ThemeProvider } from '../providers/ThemeProvider'
 
-const inter = Inter({ 
-  subsets: ['latin', 'cyrillic'],
-  display: 'swap',
-  variable: '--font-inter',
+const inter = Inter({ subsets: ['latin'] })
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  variable: '--font-orbitron',
+  weight: ['400', '500', '600', '700', '800', '900']
 })
 
 export const metadata: Metadata = {
-  title: 'Игра Интуиция',
+  title: 'Игра "Интуиция"',
   description: 'Карточная игра на интуицию',
 }
 
@@ -19,9 +22,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru" className={inter.variable}>
-      <body className="min-h-screen">
-        {children}
+    <html lang="ru" suppressHydrationWarning>
+      <body className={`${inter.className} ${orbitron.variable}`} suppressHydrationWarning>
+        <ThemeProvider>
+          <ClientProvider>
+            {children}
+          </ClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

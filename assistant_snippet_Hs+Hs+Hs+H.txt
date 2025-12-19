@@ -1,0 +1,6 @@
+1|<motion.button
+2|    ref={button2Ref}
+3|    key="single-player"
+4|    onClick={() => setShowDifficultySelector(true)}
+5|    // ...
+6|> 

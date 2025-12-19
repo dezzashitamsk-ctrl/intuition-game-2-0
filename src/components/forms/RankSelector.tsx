@@ -1,6 +1,6 @@
 import React from 'react';
-import { RANKS } from '../constants/game';
-import { CardRank } from '../types/game';
+import { RANKS } from '../../constants/game';
+import { CardRank } from '../../types/game';
 
 interface RankSelectorProps {
     onSelect: (rank: CardRank) => void;

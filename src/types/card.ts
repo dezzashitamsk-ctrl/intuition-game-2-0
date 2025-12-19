@@ -25,6 +25,6 @@ export interface PredictionResult {
     suitMatch: boolean;   // Совпадение по масти
     rankMatch: boolean;   // Совпадение по номиналу
     totalPoints: number;  // Общее количество очков
-    correct: boolean;     // Было ли предсказание верным
+    correct: boolean;     // Было ли предсказание полностью верным
     message: string;      // Сообщение о результате
 } 

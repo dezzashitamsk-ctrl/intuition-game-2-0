@@ -4,6 +4,10 @@ export interface Player {
     id: number;
     name: string;
     score: number;
+    previousScore?: number;
+    streak: number;
+    chips: number;
+    previousChips: number;
 }
 
 export interface GameState {
@@ -13,6 +17,18 @@ export interface GameState {
     lastPrediction?: Prediction;
     lastResult?: PredictionResult;
     gameOver: boolean;
+    pot: number;
+    roundBet: number;
+    chipsState: {
+        pot: number;
+        transactions: any[];
+    };
+    winner?: Player;
+    winAnimation: {
+        show: boolean;
+        amount: number;
+        playerId: number;
+    };
 }
 
 export type {

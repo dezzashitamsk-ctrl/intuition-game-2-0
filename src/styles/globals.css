@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Базовые стили для Telegram WebApp */
+:root {
+    --tg-viewport-height: 100vh;
+    --tg-viewport-stable-height: 100vh;
+}
+
+html, body {
+    height: var(--tg-viewport-height);
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* Основные цвета и переменные */
+:root {
+    --background-primary: #111111;
+    --background-secondary: rgba(26, 26, 26, 0.7);
+    --background-hover: rgba(30, 30, 30, 0.8);
+    --text-primary: #FFF1F2;
+    --text-secondary: rgba(255, 241, 242, 0.6);
+    --border-color: rgba(42, 42, 42, 0.5);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Стили для мастей */
+.suit {
+    font-family: "DejaVu Sans", serif;
+    display: inline-block;
+}
+
+.suit-red {
+    color: #CC3333 !important;
+}
+
+.suit-black {
+    color: #333333 !important;
+}
+
+/* Адаптивная типография */
+@media (max-width: 640px) {
+    .text-adaptive {
+        font-size: clamp(2rem, 8vw, 4rem);
+    }
+    .button-adaptive {
+        padding: clamp(0.5rem, 2vw, 1rem);
+        font-size: clamp(0.75rem, 3vw, 1rem);
+    }
+}
+
+/* Анимации */
+@keyframes blur-radial {
+    0% {
+        clip-path: circle(0% at center);
+    }
+    100% {
+        clip-path: circle(100% at center);
+    }
+}
+
+.animate-blur-radial {
+    animation: blur-radial 0.5s ease-out forwards;
+}
+
+/* Компоненты */
+@layer components {
+    .tg-container {
+        height: var(--tg-viewport-stable-height);
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tg-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .tg-button {
+        width: 100%;
+        max-width: 90vw;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: var(--background-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 16px var(--shadow-color);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .tg-button:hover {
+        background: var(--background-hover);
+        border-color: rgba(42, 42, 42, 0.8);
+        box-shadow: 0 12px 24px var(--shadow-color);
+    }
+}
+// ... existing code ... 

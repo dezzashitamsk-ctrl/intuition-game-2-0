@@ -1,0 +1,17 @@
+1|const item = {
+2|    hidden: { 
+3|        opacity: 0,
+4|        scale: 0,
+5|        rotateY: 180
+6|    },
+7|    show: { 
+8|        opacity: 1,
+9|        scale: 1,
+10|        rotateY: 0,
+11|        transition: {
+12|            type: "spring",
+13|            stiffness: 300,
+14|            damping: 20
+15|        }
+16|    }
+17|};

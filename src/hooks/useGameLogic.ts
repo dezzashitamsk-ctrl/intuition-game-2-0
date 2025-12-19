@@ -2,60 +2,74 @@ import { useReducer } from 'react';
 import { Card, Prediction, PredictionResult, Player, GameState } from '../types/game';
 import { createDeck, shuffleDeck, checkPrediction } from '../utils/cardUtils';
 
-type GameAction = 
+type GameAction =
     | { type: 'START_GAME'; playerCount: number }
-    | { type: 'MAKE_PREDICTION'; prediction: Prediction };
+    | { type: 'MAKE_PREDICTION'; prediction: Prediction }
+    | { type: 'END_GAME' };
 
-/**
- * Начальное состояние игры
- */
 const initialState: GameState = {
     players: [],
     currentPlayerIndex: 0,
     deck: [],
     lastPrediction: undefined,
     lastResult: undefined,
-    gameOver: false
+    gameOver: false,
+    pot: 0,
+    roundBet: 0,
+    chipsState: {
+        pot: 0,
+        transactions: []
+    },
+    winner: undefined,
+    winAnimation: {
+        show: false,
+        amount: 0,
+        playerId: 0
+    }
 };
 
-/**
- * Создает массив игроков с начальными очками
- */
-const createInitialPlayers = (count: number = 2): Player[] => 
-    Array.from({ length: count }, (_, i) => ({
+const createInitialPlayers = (count: number): Player[] => {
+    return Array.from({ length: count }, (_, i) => ({
         id: i + 1,
         name: `Игрок ${i + 1}`,
-        score: 0
+        score: 0,
+        previousScore: 0,
+        streak: 0,
+        chips: 0,
+        previousChips: 0
     }));
-
-/**
- * Обновляет очки игрока
- */
-const updatePlayerScore = (
-    players: Player[], 
-    currentPlayerIndex: number, 
-    points: number
-): Player[] => {
-    return players.map((player, index) => 
-        index === currentPlayerIndex
-            ? { ...player, score: player.score + points }
-            : player
-    );
 };
 
-/**
- * Редуктор для управления состоянием игры
- */
+const checkGameOver = (state: GameState): [boolean, Player | undefined] => {
+    // Игра заканчивается когда колода пуста
+    if (state.deck.length === 0) {
+        const winner = [...state.players].sort((a, b) => b.score - a.score)[0];
+        return [true, winner];
+    }
+
+    return [false, undefined];
+};
+
 const gameReducer = (state: GameState, action: GameAction): GameState => {
     switch (action.type) {
         case 'START_GAME': {
             const deck = shuffleDeck(createDeck());
-            const players = createInitialPlayers(action.playerCount);
+            // Всегда создаем 2 игроков
+            const actualPlayerCount = 2;
+            const players = createInitialPlayers(actualPlayerCount);
+
+            // Если одиночная игра, второй игрок - бот
+            if (action.playerCount === 1) {
+                players[1].name = 'Бот';
+            }
+
             return {
                 ...initialState,
                 players,
                 deck,
-                gameOver: false
+                currentPlayerIndex: 0,
+                gameOver: false,
+                winner: undefined
             };
         }
 
@@ -64,20 +78,73 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
             const currentCard = state.deck[0];
             const result = checkPrediction(action.prediction, currentCard);
-            const updatedPlayers = updatePlayerScore(
-                state.players, 
-                state.currentPlayerIndex, 
-                result.totalPoints
-            );
+            const newDeck = state.deck.slice(1);
+            const nextPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
+
+            console.log('REDUCER: MAKE_PREDICTION', {
+                currentCard,
+                prediction: action.prediction,
+                result,
+                currentPlayer: state.players[state.currentPlayerIndex]
+            });
+
+            // Обновляем очки текущего игрока
+            const updatedPlayers = state.players.map((player, index) => {
+                if (index === state.currentPlayerIndex) {
+                    const newStreak = result.correct ? player.streak + 1 : 0;
+                    const streakBonus = newStreak >= 3 ? Math.floor(newStreak / 3) : 0;
+                    const totalPoints = result.totalPoints + (streakBonus * 2);
+
+                    console.log('REDUCER: Updating player score', {
+                        playerName: player.name,
+                        previousScore: player.score,
+                        totalPoints,
+                        resultPoints: result.totalPoints,
+                        streakBonus,
+                        newScore: player.score + totalPoints
+                    });
+
+                    return {
+                        ...player,
+                        previousScore: player.score,
+                        score: player.score + totalPoints,
+                        streak: newStreak
+                    };
+                }
+                return player;
+            });
+
+            // Проверяем условия окончания игры
+            const [gameOver, winner] = checkGameOver({
+                ...state,
+                deck: newDeck,
+                players: updatedPlayers
+            });
+
+            console.log('REDUCER: Switching player', {
+                currentPlayerIndex: state.currentPlayerIndex,
+                nextPlayerIndex,
+                playersCount: state.players.length
+            });
 
             return {
                 ...state,
+                deck: newDeck,
                 players: updatedPlayers,
                 lastPrediction: action.prediction,
                 lastResult: result,
-                deck: state.deck.slice(1),
-                currentPlayerIndex: (state.currentPlayerIndex + 1) % state.players.length,
-                gameOver: state.deck.length <= 1
+                currentPlayerIndex: nextPlayerIndex,
+                gameOver,
+                winner
+            };
+        }
+
+        case 'END_GAME': {
+            const winner = [...state.players].sort((a, b) => b.score - a.score)[0];
+            return {
+                ...state,
+                gameOver: true,
+                winner
             };
         }
 
@@ -86,20 +153,23 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
 };
 
-/**
- * Хук для управления логикой игры
- */
-export function useGameLogic(initialPlayers: number = 2) {
-    const [gameState, dispatch] = useReducer(gameReducer, {
-        ...initialState,
-        players: createInitialPlayers(initialPlayers)
-    });
+export const useGameLogic = (initialPlayerCount: number = 2) => {
+    const [gameState, dispatch] = useReducer(gameReducer, initialState);
 
-    const startGame = (playerCount: number = 2) => {
+    const startGame = (playerCount: number) => {
+        console.log('Starting game with', playerCount, 'players');
         dispatch({ type: 'START_GAME', playerCount });
     };
 
     const makePrediction = (prediction: Prediction) => {
+        if (gameState.gameOver) return;
+
+        console.log('Making prediction:', {
+            player: gameState.players[gameState.currentPlayerIndex],
+            prediction,
+            card: gameState.deck[0]
+        });
+
         dispatch({ type: 'MAKE_PREDICTION', prediction });
     };
 
@@ -108,4 +178,4 @@ export function useGameLogic(initialPlayers: number = 2) {
         startGame,
         makePrediction
     };
-} 
+};
