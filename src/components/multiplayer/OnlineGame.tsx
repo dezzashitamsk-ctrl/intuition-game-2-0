@@ -28,12 +28,22 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({ onLeave }) => {
     const [showCardFace, setShowCardFace] = useState(false);
     const [isFlipping, setIsFlipping] = useState(false);
 
+    // Debug logging
+    console.log('OnlineGame render:', JSON.stringify({
+        hasRoom: !!room,
+        roomStatus: room?.status,
+        playerRole,
+        hasCurrentCard: !!currentCard,
+    }, null, 2));
+
     if (!room || !playerRole) {
+        console.log('OnlineGame: No room or playerRole, returning null');
         return null;
     }
 
     // Safety check for card
     if (!currentCard) {
+        console.log('OnlineGame: No current card, showing loading');
         return (
             <div className="min-h-screen relative flex items-center justify-center">
                 <AnimatedBackground variant="game" />
