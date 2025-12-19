@@ -200,9 +200,10 @@ export default function OnlinePage() {
                     : { id: room.guest_id, score: room.guest_score, streak: room.guest_streak }}
                 makeTurn={async (prediction) => {
                     try {
-                        await multiplayerService.makeTurn(prediction);
+                        return await multiplayerService.makeTurn(prediction);
                     } catch (error) {
                         console.error('Error making turn:', error);
+                        throw error;
                     }
                 }}
                 onLeave={handleLeave}

@@ -148,7 +148,7 @@ export class MultiplayerService {
     /**
      * Make a turn (prediction)
      */
-    async makeTurn(prediction: Prediction): Promise<void> {
+    async makeTurn(prediction: Prediction): Promise<{ correct: boolean; totalPoints: number }> {
         if (!this.roomId) throw new Error('Not in a room');
 
         try {
@@ -224,6 +224,12 @@ export class MultiplayerService {
                 });
 
             if (moveError) throw moveError;
+
+            // Return result immediately
+            return {
+                correct: result.correct,
+                totalPoints: result.totalPoints
+            };
         } catch (error) {
             console.error('Error making turn:', error);
             throw error;
@@ -299,6 +305,14 @@ export class MultiplayerService {
      * Check prediction (same logic as in cardUtils)
      */
     private checkPrediction(prediction: Prediction, card: Card) {
+        console.log('[MultiplayerService] checkPrediction:', {
+            prediction,
+            card,
+            predictionColor: prediction.color,
+            cardColor: card.color,
+            match: prediction.color === card.color
+        });
+
         let correct = false;
         let basePoints = 0;
 
@@ -321,11 +335,15 @@ export class MultiplayerService {
                 break;
         }
 
-        return {
+        const result = {
             correct,
             basePoints,
             totalPoints: correct ? basePoints : 0,
         };
+
+        console.log('[MultiplayerService] checkPrediction result:', result);
+
+        return result;
     }
 }
 

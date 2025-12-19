@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PredictionForm } from '../forms/PredictionForm';
 import { PredictionResult } from '../ui/PredictionResult';
-import Card from '../game/Card';
 import { AnimatedBackground } from '../ui/AnimatedBackground';
-import type { Prediction } from '../../types/game';
+import { PlayerCard } from '../game/PlayerCard';
+import { CompactPlayer } from '../game/CompactPlayer';
+import { GameOverModal } from '../game/GameOverModal';
+import Card from '../game/Card';
+import type { Card as CardType, Prediction } from '../../types/game';
+import { useSound } from '../../hooks/useSound';
 import type { GameRoom } from '../../lib/supabase';
 
 interface OnlineGameProps {
@@ -17,7 +21,7 @@ interface OnlineGameProps {
     currentCard: any;
     opponent: { id: string | null | undefined; score: number | null | undefined; streak: number | null | undefined };
     player: { id: string | null | undefined; score: number | null | undefined; streak: number | null | undefined };
-    makeTurn: (prediction: Prediction) => Promise<void>;
+    makeTurn: (prediction: Prediction) => Promise<{ correct: boolean; totalPoints: number }>;
     onLeave: () => void;
 }
 
@@ -32,188 +36,227 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({
     makeTurn,
     onLeave
 }) => {
-
-    const [showCardFace, setShowCardFace] = useState(false);
     const [isFlipping, setIsFlipping] = useState(false);
+    const [showCardFace, setShowCardFace] = useState(false);
+    const [lastRevealedCard, setLastRevealedCard] = useState<CardType | undefined>(undefined);
+    const [showGameOver, setShowGameOver] = useState(false);
+    const [frozenCard, setFrozenCard] = useState<CardType | undefined>(undefined);
+    const { playSound, playWin, playLoss } = useSound();
 
-    // Safety check for card
-    if (!currentCard) {
-        return (
-            <div className="min-h-screen relative flex items-center justify-center">
-                <AnimatedBackground variant="game" />
-                <div className="glass-dark rounded-3xl p-8 text-center">
-                    <div className="text-yellow-400 mb-4">⏳ Loading game...</div>
-                    <button onClick={onLeave} className="text-gray-400 hover:text-white">
-                        ← Back
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // Freeze card during animation to prevent updates
+    const displayCard = isFlipping ? frozenCard : currentCard;
+
+    // Check for game over
+    useEffect(() => {
+        if (isFinished && !showGameOver) {
+            setShowGameOver(true);
+            playSound();
+        }
+    }, [isFinished, showGameOver, playSound]);
 
     const handlePrediction = async (prediction: Prediction) => {
-        if (!isMyTurn || isFlipping) return;
-
-        setIsFlipping(true);
-        setShowCardFace(true);
-
-        // Wait for card flip animation
-        await new Promise(resolve => setTimeout(resolve, 800));
+        if (isFlipping || !currentCard) return;
 
         try {
-            // Make turn via multiplayer service
-            await makeTurn(prediction);
+            setIsFlipping(true);
+
+            // Freeze current card for animation
+            setFrozenCard(currentCard);
+
+            // Сохраняем текущую карту как последнюю открытую
+            setLastRevealedCard(currentCard);
+
+            // Шаг 1: Переворачиваем карту (показываем лицо)
+            setShowCardFace(true);
+            playSound();
+
+            // Шаг 2: Ждем пока карта перевернется
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Шаг 3: Отправляем ход на сервер и получаем результат
+            const result = await makeTurn(prediction);
+
+            // Шаг 4: Проигрываем звук СРАЗУ на основе результата
+            if (result.correct) {
+                playWin(); // Правильно - играем звук победы
+            } else {
+                playLoss(); // Неправильно - играем звук поражения
+            }
+
+            // Шаг 5: Показываем результат (карта остается лицом вверх)
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            // Шаг 6: Переворачиваем карту обратно (скрываем лицо)
+            setShowCardFace(false);
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Unfreeze card - теперь можно показать следующую
+            setFrozenCard(undefined);
+            setIsFlipping(false);
         } catch (error) {
-            console.error('Error making turn:', error);
+            console.error('Ошибка в процессе анимации:', error);
+            setFrozenCard(undefined);
+            setIsFlipping(false);
+            setShowCardFace(false);
         }
-
-        // Wait to show result
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Flip card back
-        setShowCardFace(false);
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        setIsFlipping(false);
     };
 
-    const cardsLeft = room.deck.length - room.current_card_index;
-    const isGameOver = isFinished || cardsLeft <= 0;
+    const handleRestart = () => {
+        // В онлайн режиме перезапуск не поддерживается
+        onLeave();
+    };
+
+    const handleExit = () => {
+        onLeave();
+    };
+
+    // Создаем объекты игроков в формате, совместимом с GameOverModal
+    const players = [
+        {
+            name: playerRole === 'host' ? 'Вы' : 'Вы',
+            score: player.score ?? 0,
+            chips: player.score ?? 0,
+            streak: player.streak ?? 0,
+            previousScore: 0
+        },
+        {
+            name: 'Оппонент',
+            score: opponent.score ?? 0,
+            chips: opponent.score ?? 0,
+            streak: opponent.streak ?? 0,
+            previousScore: 0
+        }
+    ];
 
     return (
         <div className="min-h-screen relative">
+            {/* Анимированный фон */}
             <AnimatedBackground variant="game" />
 
-            <div className="container mx-auto p-4 md:p-8 relative z-10">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <div className="glass-dark rounded-2xl px-6 py-3">
-                        <div className="text-sm text-gray-400 mb-1">CARDS LEFT</div>
-                        <div className="text-3xl font-bold text-white font-[family-name:var(--font-orbitron)]">
-                            {cardsLeft}
-                        </div>
-                    </div>
-
+            {/* Главный контейнер */}
+            <div className="container mx-auto p-4 md:p-8">
+                <div className="glass-dark rounded-3xl p-6 md:p-8 relative">
+                    {/* Кнопка выхода - правый верхний угол */}
                     <button
                         onClick={onLeave}
-                        className="glass-dark px-6 py-3 rounded-xl
-                                 border-2 border-red-500/50
-                                 hover:border-red-400
-                                 transition-all
-                                 text-red-400 hover:text-red-300
-                                 font-[family-name:var(--font-orbitron)]"
+                        className="absolute top-6 -right-6 z-20
+                                 w-12 h-12 rounded-full
+                                 bg-gradient-to-br from-red-500/20 to-red-500/10
+                                 border-2 border-red-500/40
+                                 hover:border-red-500
+                                 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]
+                                 hover:scale-110
+                                 active:scale-95
+                                 transition-all duration-300
+                                 flex items-center justify-center group"
                     >
-                        ← Exit
-                    </button>
-                </div>
-
-                {/* Players */}
-                <div className="grid grid-cols-2 gap-6 mb-8">
-                    {/* You */}
-                    <div className={`glass-dark rounded-2xl p-6 ${isMyTurn ? 'border-2 border-green-500/50' : 'border-2 border-white/10'}`}>
-                        <div className="text-sm text-gray-400 mb-2">YOU ({playerRole === 'host' ? 'Host' : 'Guest'})</div>
-                        <div className="text-4xl font-bold text-white font-[family-name:var(--font-orbitron)]">
-                            {player.score || 0}
-                        </div>
-                        <div className="text-sm text-gray-400 mt-2">
-                            Streak: {player.streak || 0}
-                        </div>
-                        {isMyTurn && !isGameOver && (
-                            <div className="mt-3 text-green-400 text-sm animate-pulse">
-                                ● YOUR TURN
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Opponent */}
-                    <div className={`glass-dark rounded-2xl p-6 ${!isMyTurn && !isGameOver ? 'border-2 border-yellow-500/50' : 'border-2 border-white/10'}`}>
-                        <div className="text-sm text-gray-400 mb-2">OPPONENT ({playerRole === 'host' ? 'Guest' : 'Host'})</div>
-                        <div className="text-4xl font-bold text-white font-[family-name:var(--font-orbitron)]">
-                            {opponent.score || 0}
-                        </div>
-                        <div className="text-sm text-gray-400 mt-2">
-                            Streak: {opponent.streak || 0}
-                        </div>
-                        {!isMyTurn && !isGameOver && (
-                            <div className="mt-3 text-yellow-400 text-sm animate-pulse">
-                                ⏳ OPPONENT'S TURN
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Card */}
-                <div className="flex justify-center mb-8">
-                    <div className={`card-wrapper ${showCardFace ? 'is-flipped' : ''}`}>
-                        <Card card={currentCard} isHidden={true} />
-                    </div>
-                </div>
-
-                {/* Game Over */}
-                {isGameOver && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="glass-dark rounded-3xl p-8 text-center mb-8"
-                    >
-                        <h2 className="text-4xl font-bold mb-4 font-[family-name:var(--font-orbitron)]">
-                            {room.winner === playerRole ? (
-                                <span className="text-green-400">🎉 YOU WIN!</span>
-                            ) : room.winner === 'draw' ? (
-                                <span className="text-blue-400">🤝 DRAW!</span>
-                            ) : (
-                                <span className="text-red-400">😔 YOU LOSE</span>
-                            )}
-                        </h2>
-                        <div className="text-2xl text-gray-300 mb-6">
-                            Final Score: {player.score} - {opponent.score}
-                        </div>
-                        <button
-                            onClick={onLeave}
-                            className="glass-dark px-8 py-4 rounded-xl
-                                     bg-gradient-to-r from-blue-500/20 to-purple-500/20
-                                     border-2 border-blue-500/50
-                                     hover:border-blue-400
-                                     transition-all
-                                     text-white font-bold
-                                     font-[family-name:var(--font-orbitron)]"
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                            stroke="currentColor"
+                            className="w-6 h-6 text-red-400 transform 
+                                     transition-transform duration-300 
+                                     group-hover:rotate-90"
                         >
-                            Back to Lobby
-                        </button>
-                    </motion.div>
-                )}
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
 
-                {/* Prediction Form or Result */}
-                {!isGameOver && (
-                    <>
-                        {room.last_result && room.last_prediction ? (
-                            <div className="prediction-container mb-8">
-                                <PredictionResult
-                                    prediction={room.last_prediction}
-                                    actual={currentCard!}
-                                    result={room.last_result}
-                                    chipsWon={room.last_result.totalPoints}
-                                />
-                            </div>
-                        ) : (
-                            <div className="prediction-container mb-8">
-                                <div className="glass-dark rounded-3xl p-6 h-[400px] flex items-center justify-center">
-                                    <div className="text-gray-400 text-center">
-                                        {isMyTurn ? 'Make your prediction below' : 'Waiting for opponent...'}
-                                    </div>
+                    {/* Карточки игроков - скрыты на мобильных */}
+                    <div className="hidden md:flex justify-between items-center mb-8 relative">
+                        <PlayerCard
+                            name={playerRole === 'host' ? 'Вы (Хост)' : 'Вы (Гость)'}
+                            score={player.score ?? 0}
+                            previousScore={0}
+                            isActive={isMyTurn}
+                            gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+                        />
+
+                        <PlayerCard
+                            name="Оппонент"
+                            score={opponent.score ?? 0}
+                            previousScore={0}
+                            isActive={!isMyTurn}
+                            gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+                        />
+                    </div>
+
+                    {/* Карта и форма предсказания */}
+                    <div className="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-8 justify-center">
+                        <div className="flex flex-col items-center">
+                            <div className="card-container mb-4 relative">
+                                {/* Компактные индикаторы игроков для мобильных */}
+                                <div className="md:hidden">
+                                    <CompactPlayer
+                                        score={player.score ?? 0}
+                                        previousScore={0}
+                                        isActive={isMyTurn}
+                                        position="left"
+                                        color="border-blue-500"
+                                        name="Вы"
+                                    />
+                                    <CompactPlayer
+                                        score={opponent.score ?? 0}
+                                        previousScore={0}
+                                        isActive={!isMyTurn}
+                                        position="right"
+                                        color="border-purple-500"
+                                        name="Оппонент"
+                                    />
+                                </div>
+
+                                <div className={`card-wrapper ${showCardFace ? 'is-flipped' : ''}`}>
+                                    <Card card={displayCard} isHidden={true} />
                                 </div>
                             </div>
-                        )}
-
+                            <div className="glass-dark rounded-xl px-6 py-4 text-center border-2 border-white/10">
+                                <div className="text-4xl font-bold text-blue-400 font-[family-name:var(--font-orbitron)]">
+                                    {room.deck.length - room.current_card_index}
+                                </div>
+                            </div>
+                        </div>
                         <div className="prediction-container">
                             <PredictionForm
                                 onSubmit={handlePrediction}
-                                disabled={!isMyTurn || isFlipping}
+                                disabled={isFlipping || !isMyTurn}
                             />
                         </div>
-                    </>
-                )}
+                    </div>
+
+                    {/* Результат предсказания */}
+                    {room.last_prediction && room.last_result && lastRevealedCard ? (
+                        <div className="mt-8 prediction-container">
+                            <PredictionResult
+                                prediction={room.last_prediction}
+                                actual={lastRevealedCard}
+                                result={room.last_result}
+                                chipsWon={room.last_result.totalPoints}
+                            />
+                        </div>
+                    ) : (
+                        <div className="mt-8 prediction-container">
+                            <div className="glass-dark rounded-3xl p-6 shadow-xl h-[400px] flex flex-col justify-center items-center text-center">
+                                {/* Пустой блок до начала игры */}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Модальное окно Game Over */}
+            {showGameOver && (
+                <GameOverModal
+                    players={players}
+                    onRestart={handleRestart}
+                    onExit={handleExit}
+                />
+            )}
         </div>
     );
 };
