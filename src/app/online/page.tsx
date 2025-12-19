@@ -101,7 +101,7 @@ export default function OnlinePage() {
         );
     }
 
-    // Show waiting room if waiting for opponent
+    // Show waiting room if host is waiting for opponent
     if (isWaiting && playerRole === 'host') {
         return (
             <div className="min-h-screen relative flex items-center justify-center">
@@ -174,8 +174,8 @@ export default function OnlinePage() {
         );
     }
 
-    // Show game if playing
-    if (room && room.status === 'playing') {
+    // Show game if room is playing or finished (both players present)
+    if (room && (room.status === 'playing' || room.status === 'finished')) {
         return <OnlineGame onLeave={handleLeave} />;
     }
 
