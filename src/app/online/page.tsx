@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useMultiplayer } from '../../hooks/useMultiplayer';
+import { multiplayerService } from '../../services/MultiplayerService';
 import { RoomLobby } from '../../components/multiplayer/RoomLobby';
 import { OnlineGame } from '../../components/multiplayer/OnlineGame';
 import { AnimatedBackground } from '../../components/ui/AnimatedBackground';
@@ -176,7 +177,29 @@ export default function OnlinePage() {
 
     // Show game if room is playing or finished (both players present)
     if (room && (room.status === 'playing' || room.status === 'finished')) {
-        return <OnlineGame onLeave={handleLeave} />;
+        return (
+            <OnlineGame
+                room={room}
+                playerRole={playerRole!}
+                isMyTurn={!!room && room.current_turn === playerRole}
+                isFinished={room.status === 'finished'}
+                currentCard={room.deck?.[room.current_card_index]}
+                opponent={playerRole === 'host'
+                    ? { id: room.guest_id, score: room.guest_score, streak: room.guest_streak }
+                    : { id: room.host_id, score: room.host_score, streak: room.host_streak }}
+                player={playerRole === 'host'
+                    ? { id: room.host_id, score: room.host_score, streak: room.host_streak }
+                    : { id: room.guest_id, score: room.guest_score, streak: room.guest_streak }}
+                makeTurn={async (prediction) => {
+                    try {
+                        await multiplayerService.makeTurn(prediction);
+                    } catch (error) {
+                        console.error('Error making turn:', error);
+                    }
+                }}
+                onLeave={handleLeave}
+            />
+        );
     }
 
     // Debug fallback

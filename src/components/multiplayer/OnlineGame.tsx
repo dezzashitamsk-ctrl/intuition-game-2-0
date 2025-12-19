@@ -2,48 +2,42 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useMultiplayer } from '../../hooks/useMultiplayer';
 import { PredictionForm } from '../forms/PredictionForm';
 import { PredictionResult } from '../ui/PredictionResult';
 import Card from '../game/Card';
 import { AnimatedBackground } from '../ui/AnimatedBackground';
 import type { Prediction } from '../../types/game';
+import type { GameRoom } from '../../lib/supabase';
 
 interface OnlineGameProps {
+    room: GameRoom;
+    playerRole: 'host' | 'guest';
+    isMyTurn: boolean;
+    isFinished: boolean;
+    currentCard: any;
+    opponent: { id: string | null | undefined; score: number | null | undefined; streak: number | null | undefined };
+    player: { id: string | null | undefined; score: number | null | undefined; streak: number | null | undefined };
+    makeTurn: (prediction: Prediction) => Promise<void>;
     onLeave: () => void;
 }
 
-export const OnlineGame: React.FC<OnlineGameProps> = ({ onLeave }) => {
-    const {
-        room,
-        playerRole,
-        isMyTurn,
-        isFinished,
-        currentCard,
-        opponent,
-        player,
-        makeTurn,
-    } = useMultiplayer();
+export const OnlineGame: React.FC<OnlineGameProps> = ({
+    room,
+    playerRole,
+    isMyTurn,
+    isFinished,
+    currentCard,
+    opponent,
+    player,
+    makeTurn,
+    onLeave
+}) => {
 
     const [showCardFace, setShowCardFace] = useState(false);
     const [isFlipping, setIsFlipping] = useState(false);
 
-    // Debug logging
-    console.log('OnlineGame render:', JSON.stringify({
-        hasRoom: !!room,
-        roomStatus: room?.status,
-        playerRole,
-        hasCurrentCard: !!currentCard,
-    }, null, 2));
-
-    if (!room || !playerRole) {
-        console.log('OnlineGame: No room or playerRole, returning null');
-        return null;
-    }
-
     // Safety check for card
     if (!currentCard) {
-        console.log('OnlineGame: No current card, showing loading');
         return (
             <div className="min-h-screen relative flex items-center justify-center">
                 <AnimatedBackground variant="game" />
