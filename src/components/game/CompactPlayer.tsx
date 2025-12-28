@@ -6,7 +6,7 @@ interface CompactPlayerProps {
     score: number
     previousScore?: number
     isActive: boolean
-    position: 'left' | 'right'
+    position: 'left' | 'right' | 'inline'
     color: string
     name: string
     isBot?: boolean
@@ -18,8 +18,9 @@ export function CompactPlayer({ score, previousScore, isActive, position, color,
     return (
         <motion.div
             className={`
-                absolute top-1/2 -translate-y-1/2
-                ${position === 'left' ? '-left-16' : '-right-16'}
+                ${position === 'left' || position === 'right'
+                    ? `absolute top-1/2 -translate-y-1/2 ${position === 'left' ? '-left-16' : '-right-16'}`
+                    : ''}
                 flex flex-col items-center gap-2
             `}
             initial={{ opacity: 0, scale: 0.8 }}

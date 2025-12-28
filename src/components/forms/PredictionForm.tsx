@@ -7,10 +7,11 @@ import { useSound } from '../../hooks/useSound';
 
 interface PredictionFormProps {
     onSubmit: (prediction: Prediction) => void;
+    onChange?: (prediction: Prediction) => void; // New: notify when choice changes
     disabled?: boolean;
 }
 
-export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabled }) => {
+export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, onChange, disabled }) => {
     const [mode, setMode] = useState<'color' | 'suit' | 'rank' | 'full' | null>(null);
     const [prediction, setPrediction] = useState<Prediction>({ mode: null });
     const { playSound } = useSound();
@@ -19,7 +20,16 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
         if (disabled) return;
         playSound();
         setMode(newMode);
-        setPrediction({ mode: newMode });
+        const newPrediction = { mode: newMode };
+        setPrediction(newPrediction);
+        onChange?.(newPrediction); // Notify parent
+    };
+
+    // Helper to update prediction and notify parent
+    const updatePrediction = (updates: Partial<Prediction>) => {
+        const newPrediction = { ...prediction, ...updates };
+        setPrediction(newPrediction);
+        onChange?.(newPrediction); // Notify parent
     };
 
     const handleSubmit = () => {
@@ -175,7 +185,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                             {Object.entries(COLORS).map(([color, { icon, text }]) => (
                                 <button
                                     key={color}
-                                    onClick={() => { playSound(); setPrediction({ ...prediction, color: color as CardColor }); }}
+                                    onClick={() => { playSound(); updatePrediction({ color: color as CardColor }); }}
                                     className={`
                                         glass-dark rounded-2xl p-6
                                         hover:scale-105 transition-all duration-300
@@ -207,8 +217,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                                         key={suit}
                                         onClick={() => {
                                             playSound();
-                                            setPrediction({
-                                                ...prediction,
+                                            updatePrediction({
                                                 suit: suit as CardSuit,
                                                 color: isRed ? 'red' : 'black'
                                             });
@@ -241,7 +250,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                             {RANKS.map((rank) => (
                                 <button
                                     key={rank}
-                                    onClick={() => { playSound(); setPrediction({ ...prediction, rank: rank as CardRank }); }}
+                                    onClick={() => { playSound(); updatePrediction({ rank: rank as CardRank }); }}
                                     className={`
                                         glass-dark rounded-xl p-3
                                         hover:scale-110
@@ -253,7 +262,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                                             : 'border-transparent hover:border-green-400/50'}
                                     `}
                                 >
-                                    <span className="text-xl font-bold text-white">{rank}</span>
+                                    <span className="text-2xl font-bold text-white">{rank}</span>
                                 </button>
                             ))}
                         </div>
@@ -271,8 +280,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                                             key={suit}
                                             onClick={() => {
                                                 playSound();
-                                                setPrediction({
-                                                    ...prediction,
+                                                updatePrediction({
                                                     suit: suit as CardSuit,
                                                     color: isRed ? 'red' : 'black'
                                                 });
@@ -303,7 +311,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                                 {RANKS.map((rank) => (
                                     <button
                                         key={rank}
-                                        onClick={() => { playSound(); setPrediction({ ...prediction, rank: rank as CardRank }); }}
+                                        onClick={() => { playSound(); updatePrediction({ rank: rank as CardRank }); }}
                                         className={`
                                             glass-dark rounded-lg p-1.5
                                             hover:scale-110
@@ -315,7 +323,7 @@ export const PredictionForm: React.FC<PredictionFormProps> = ({ onSubmit, disabl
                                                 : 'border-transparent hover:border-green-400/50'}
                                         `}
                                     >
-                                        <span className="text-base font-bold text-white">{rank}</span>
+                                        <span className="text-lg font-bold text-white">{rank}</span>
                                     </button>
                                 ))}
                             </div>

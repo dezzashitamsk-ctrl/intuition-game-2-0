@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PlayerChoiceBubble } from '../multiplayer/PlayerChoiceBubble';
 
 interface PlayerCardProps {
     name: string;
@@ -10,6 +11,8 @@ interface PlayerCardProps {
     botThinking?: string | null;
     botGreeting?: string;
     gradient: string;
+    playerChoice?: { type: 'suit' | 'color' | 'value'; value: string } | null;
+    timeLeft?: number; // Timer for active player
 }
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({
@@ -20,7 +23,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
     isBot = false,
     botThinking,
     botGreeting,
-    gradient
+    gradient,
+    playerChoice,
+    timeLeft
 }) => {
     const scoreDiff = previousScore !== undefined ? score - previousScore : 0;
     const [showScoreDiff, setShowScoreDiff] = useState(false);
@@ -46,12 +51,20 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
         >
             {/* Glassmorphism карточка - Золотистый фон для активного */}
             <div className={`
-                glass-card rounded-2xl p-5 relative overflow-visible
-                transition-all duration-250 will-change-transform
+                relative glass-card rounded-3xl p-6 min-w-[280px]
+                border-2 transition-all duration-250 will-change-transform
                 ${isActive
                     ? '!bg-gradient-to-br !from-yellow-500/15 !via-amber-500/10 !to-yellow-500/5 shadow-[0_0_40px_rgba(251,191,36,0.4)]'
                     : 'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]'}
             `}>
+                {/* Player Choice Bubble */}
+                {playerChoice && (
+                    <PlayerChoiceBubble
+                        choice={playerChoice}
+                        position={isBot ? 'left' : 'right'}
+                    />
+                )}
+
                 {/* Контент - Премиум Зеркальный Layout */}
                 <div className={`relative z-10 flex gap-5 ${isBot ? 'flex-row-reverse' : 'flex-row'} items-center`}>
                     {/* Аватарка - Премиум стиль */}
@@ -79,7 +92,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                                     src={
                                         isBot
                                             ? '/avatars/bot.jpg'
-                                            : name.includes('2') || name.includes('Игрок 2')
+                                            : name === 'Гость'
                                                 ? '/avatars/player2.jpg'
                                                 : '/avatars/player.jpg'
                                     }
@@ -153,6 +166,17 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                                 )}
                             </AnimatePresence>
                         </div>
+
+                        {/* Timer - показываем только для активного игрока */}
+                        {isActive && timeLeft !== undefined && (
+                            <div className="space-y-1">
+                                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Время</span>
+                                <div className={`text-2xl font-bold font-[family-name:var(--font-orbitron)] ${timeLeft <= 5 ? 'text-red-400 animate-pulse' : 'text-blue-400'
+                                    }`}>
+                                    {timeLeft}s
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

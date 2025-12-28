@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PredictionForm } from '../forms/PredictionForm';
+import { CollapsiblePredictionPanel } from '../forms/CollapsiblePredictionPanel';
 import { PredictionResult } from '../ui/PredictionResult';
 import { StartMenu } from '../ui/StartMenu';
 import { AnimatedBackground } from '../ui/AnimatedBackground';
@@ -385,10 +386,11 @@ export const Game: React.FC = () => {
 
                     {/* Карта и форма предсказания */}
                     <div className="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-8 justify-center">
-                        <div className="flex flex-col items-center">
-                            <div className="card-container mb-4 relative">
-                                {/* Компактные индикаторы игроков для мобильных */}
-                                <div className="md:hidden">
+                        <div className="flex flex-col items-center gap-4">
+                            {/* Карта */}
+                            <div className="card-container relative">
+                                {/* Компактные индикаторы игроков для мобильных - СТАРЫЙ ВАРИАНТ (скрыт) */}
+                                <div className="hidden">
                                     <CompactPlayer
                                         score={gameState.players[0]?.score ?? 0}
                                         previousScore={gameState.players[0]?.previousScore}
@@ -412,16 +414,57 @@ export const Game: React.FC = () => {
                                     <Card card={displayedCard} isHidden={true} />
                                 </div>
                             </div>
-                            <div className="glass-dark rounded-xl px-6 py-4 text-center border-2 border-white/10">
+
+                            {/* Счетчик карт с игроками - НОВЫЙ МОБИЛЬНЫЙ LAYOUT */}
+                            <div className="flex items-center gap-3 md:hidden">
+                                {/* Игрок 1 */}
+                                <CompactPlayer
+                                    score={gameState.players[0]?.score ?? 0}
+                                    previousScore={gameState.players[0]?.previousScore}
+                                    isActive={gameState.currentPlayerIndex === 0}
+                                    position="inline"
+                                    color="border-blue-500"
+                                    name={gameState.players[0]?.name ?? 'Игрок 1'}
+                                />
+
+                                {/* Счетчик карт */}
+                                <div className="glass-dark rounded-xl px-6 py-4 text-center border-2 border-white/10">
+                                    <div className="text-4xl font-bold text-blue-400 font-[family-name:var(--font-orbitron)]">{gameState.deck.length}</div>
+                                </div>
+
+                                {/* Игрок 2 */}
+                                <CompactPlayer
+                                    score={gameState.players[1]?.score ?? 0}
+                                    previousScore={gameState.players[1]?.previousScore}
+                                    isActive={gameState.currentPlayerIndex === 1}
+                                    position="inline"
+                                    color="border-purple-500"
+                                    name={gameState.players[1]?.name ?? (isSinglePlayer ? 'Бот' : 'Игрок 2')}
+                                    isBot={isSinglePlayer}
+                                />
+                            </div>
+
+                            {/* Счетчик карт для десктопа */}
+                            <div className="hidden md:block glass-dark rounded-xl px-6 py-4 text-center border-2 border-white/10">
                                 <div className="text-4xl font-bold text-blue-400 font-[family-name:var(--font-orbitron)]">{gameState.deck.length}</div>
                             </div>
                         </div>
-                        <div className="prediction-container">
+
+                        {/* Форма предсказания - десктоп */}
+                        <div className="prediction-container hidden md:block">
                             <PredictionForm
                                 onSubmit={handlePrediction}
                                 disabled={isFlipping || !isPlayerTurn || currentPlayer?.chips < gameState.roundBet}
                             />
                         </div>
+                    </div>
+
+                    {/* Collapsible Panel - мобильные (вне grid для правильного позиционирования FAB) */}
+                    <div className="md:hidden">
+                        <CollapsiblePredictionPanel
+                            onSubmit={handlePrediction}
+                            disabled={isFlipping || !isPlayerTurn || currentPlayer?.chips < gameState.roundBet}
+                        />
                     </div>
 
                     {/* Результат предсказания */}

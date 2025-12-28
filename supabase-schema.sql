@@ -15,7 +15,13 @@ CREATE TABLE IF NOT EXISTS game_rooms (
     guest_streak INTEGER NOT NULL DEFAULT 0,
     last_prediction JSONB,
     last_result JSONB,
-    winner TEXT CHECK (winner IN ('host', 'guest', 'draw'))
+    winner TEXT CHECK (winner IN ('host', 'guest', 'draw')),
+    -- Turn timer fields
+    turn_started_at TIMESTAMP WITH TIME ZONE,
+    turn_timeout_seconds INTEGER NOT NULL DEFAULT 15,
+    -- Player presence tracking
+    player_last_seen JSONB DEFAULT '{"host": null, "guest": null}'::jsonb,
+    disconnected_player TEXT CHECK (disconnected_player IN ('host', 'guest'))
 );
 
 -- Create game_moves table

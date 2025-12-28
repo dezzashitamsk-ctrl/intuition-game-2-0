@@ -26,6 +26,9 @@ export default function OnlinePage() {
     const [inviteLink, setInviteLink] = useState('');
     const [showLobby, setShowLobby] = useState(true);
 
+    // Get current card directly from database (already decrypted)
+    const currentCard = room?.current_card || null;
+
     // Auto-join if room ID in URL
     useEffect(() => {
         console.log('[online/page] roomIdFromUrl:', roomIdFromUrl);
@@ -191,7 +194,7 @@ export default function OnlinePage() {
                 playerRole={playerRole!}
                 isMyTurn={!!room && room.current_turn === playerRole}
                 isFinished={room.status === 'finished'}
-                currentCard={room.deck?.[room.current_card_index]}
+                currentCard={currentCard}
                 opponent={playerRole === 'host'
                     ? { id: room.guest_id, score: room.guest_score, streak: room.guest_streak }
                     : { id: room.host_id, score: room.host_score, streak: room.host_streak }}

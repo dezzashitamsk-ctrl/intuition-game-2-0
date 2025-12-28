@@ -3,15 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    realtime: {
-        params: {
-            eventsPerSecond: 10,
-        },
-    },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Types for database tables
+// Card types
+export interface Card {
+    suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
+    rank: '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
+    color: 'red' | 'black';
+}
+
 export interface GameRoom {
     id: string;
     created_at: string;
@@ -20,7 +20,9 @@ export interface GameRoom {
     host_id: string;
     guest_id: string | null;
     current_turn: 'host' | 'guest' | null;
-    deck: any[];
+    encrypted_deck: string;
+    deck_seed: string;
+    current_card: any;
     current_card_index: number;
     host_score: number;
     guest_score: number;
@@ -29,19 +31,23 @@ export interface GameRoom {
     last_prediction: any | null;
     last_result: any | null;
     winner: 'host' | 'guest' | 'draw' | null;
-}
-
-export interface GameMove {
-    id: string;
-    created_at: string;
-    room_id: string;
-    player_id: string;
-    player_role: 'host' | 'guest';
-    move_number: number;
-    card_index: number;
-    prediction: any;
-    actual_card: any;
-    result: any;
-    points_earned: number;
-    streak_after: number;
+    turn_started_at: string | null;
+    turn_timeout_seconds: number;
+    card_revealed: boolean;
+    host_current_choice: any | null;
+    guest_current_choice: any | null;
+    host_last_seen: string | null;
+    guest_last_seen: string | null;
+    // Reconnection fields
+    disconnected_player: 'host' | 'guest' | null;
+    disconnect_time: string | null;
+    reconnection_deadline: string | null;
+    // Heartbeat fields
+    host_last_heartbeat: string | null;
+    guest_last_heartbeat: string | null;
+    // Animation sync fields
+    animation_state: 'idle' | 'revealing' | 'showing' | 'hiding';
+    animation_started_at: string | null;
+    processing_lock: string | null;
+    lock_expires_at: string | null;
 }

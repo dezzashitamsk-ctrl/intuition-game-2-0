@@ -58,9 +58,15 @@ export const PredictionResult: React.FC<PredictionResultProps> = ({
             className="flex flex-col gap-4"
         >
             <div className={`
-                glass-dark rounded-3xl p-6 shadow-xl h-[400px] flex flex-col
+                glass-dark rounded-3xl p-4 md:p-6 shadow-xl 
+                h-auto md:h-[400px] 
+                flex flex-col
                 relative overflow-hidden
-                ${result.correct ? 'glow-green' : ''}
+                transition-shadow duration-500
+                ${result.correct
+                    ? 'shadow-[0_0_40px_rgba(34,197,94,0.4)] border-2 border-green-500/30'
+                    : 'shadow-[0_0_40px_rgba(239,68,68,0.4)] border-2 border-red-500/30'
+                }
             `}>
                 {/* Gradient overlay */}
                 <div className={`
@@ -70,77 +76,52 @@ export const PredictionResult: React.FC<PredictionResultProps> = ({
 
                 {/* Контент */}
                 <div className="relative z-10 flex flex-col h-full">
-                    {/* Заголовок с иконкой */}
-                    <div className="flex items-center gap-4 mb-6">
-                        <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ type: "spring", delay: 0.1 }}
-                            className="text-5xl"
-                        >
-                            {result.correct ? '✅' : '❌'}
-                        </motion.div>
-                        <h3 className={`text-3xl font-bold font-[family-name:var(--font-orbitron)] ${result.correct ? 'text-green-400' : 'text-red-400'}`}>
-                            {result.correct ? 'Правильно!' : 'Неправильно!'}
-                        </h3>
-                    </div>
-
                     {/* Информация */}
-                    <div className="space-y-4 flex-1">
+                    <div className="space-y-2 md:space-y-4 flex-1">
                         {/* Предсказание */}
-                        <div className="flex items-center justify-between glass-dark rounded-xl p-4 border-2 border-white/10">
-                            <span className="text-gray-400 text-base">Ваш выбор:</span>
-                            <span className="text-white font-bold text-xl">{getPredictionText()}</span>
+                        <div className="flex items-center justify-between glass-dark rounded-xl p-3 md:p-4 border-2 border-white/10">
+                            {/* Мобильная версия - только иконка */}
+                            <span className="md:hidden text-2xl" title="Ваш выбор">👤</span>
+                            {/* Десктоп версия - текст */}
+                            <span className="hidden md:inline text-gray-400 text-base">Ваш выбор:</span>
+                            <span className="text-white font-bold text-lg md:text-xl">{getPredictionText()}</span>
                         </div>
 
                         {/* Результат */}
-                        <div className="flex items-center justify-between glass-dark rounded-xl p-4 border-2 border-white/10">
-                            <span className="text-gray-400 text-base">Результат:</span>
-                            <span className="text-white font-bold text-xl">{getActualText()}</span>
+                        <div className="flex items-center justify-between glass-dark rounded-xl p-3 md:p-4 border-2 border-white/10">
+                            {/* Мобильная версия - только иконка */}
+                            <span className="md:hidden text-2xl" title="Результат">🎴</span>
+                            {/* Десктоп версия - текст */}
+                            <span className="hidden md:inline text-gray-400 text-base">Результат:</span>
+                            <span className="text-white font-bold text-lg md:text-xl">{getActualText()}</span>
                         </div>
 
-                        {/* Очки - ФИКСИРОВАННАЯ ОБЛАСТЬ */}
-                        <div className="flex-1 flex items-center justify-center">
-                            <AnimatePresence mode="wait">
-                                {result.correct && (
-                                    <motion.div
-                                        key="points"
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ delay: 0.2 }}
-                                        className="flex items-center justify-between glass-dark rounded-xl p-5 w-full border-2 border-green-400/30"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <motion.span
-                                                animate={{ rotate: [0, 360] }}
-                                                transition={{ duration: 0.5, delay: 0.3 }}
-                                                className="text-3xl"
-                                            >
-                                                ⭐
-                                            </motion.span>
-                                            <span className="text-white font-medium text-lg">Получено очков:</span>
-                                        </div>
-                                        <span className="text-4xl font-bold text-green-400 font-[family-name:var(--font-orbitron)]">
-                                            +{result.totalPoints}
-                                        </span>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        {/* Очки - ВСЕГДА ПОКАЗЫВАЕМ */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className={`flex items-center justify-between glass-dark rounded-xl p-3 md:p-5 w-full border-2 ${result.correct ? 'border-green-400/30' : 'border-red-400/20'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <motion.span
+                                    animate={result.correct ? { rotate: [0, 360] } : {}}
+                                    transition={{ duration: 0.5, delay: 0.3 }}
+                                    className="text-2xl md:text-3xl"
+                                >
+                                    ⭐
+                                </motion.span>
+                                {/* Мобильная версия - без текста */}
+                                <span className="hidden md:inline text-white font-medium text-lg">Получено очков:</span>
+                            </div>
+                            <span className={`text-3xl md:text-4xl font-bold font-[family-name:var(--font-orbitron)] ${result.correct ? 'text-green-400' : 'text-red-400'
+                                }`}>
+                                {result.correct ? `+${result.totalPoints}` : '+0'}
+                            </span>
+                        </motion.div>
                     </div>
                 </div>
-
-                {/* Анимированная полоса */}
-                {result.correct && (
-                    <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        style={{ transformOrigin: 'left' }}
-                    />
-                )}
             </div>
         </motion.div>
     );

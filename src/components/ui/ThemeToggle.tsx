@@ -10,7 +10,7 @@ export function ThemeToggle() {
         <motion.button
             onClick={toggleTheme}
             className="
-                fixed top-4 left-4 z-50
+                fixed bottom-4 right-4 z-50
                 glass-dark rounded-full p-3
                 border-2 border-white/10
                 hover:border-white/20

@@ -2,6 +2,7 @@
 
 import { supabase, GameRoom } from '../lib/supabase';
 import { createDeck, shuffleDeck } from '../utils/cardUtils';
+import { generateDeck, encryptDeck, decryptCard, generateSeed } from '../utils/deckEncryption';
 import type { Card, Prediction } from '../types/game';
 
 export class MultiplayerService {
@@ -33,15 +34,26 @@ export class MultiplayerService {
      */
     async createRoom(): Promise<{ roomId: string; inviteLink: string }> {
         try {
-            // Create and shuffle deck
-            const deck = shuffleDeck(createDeck());
+            // Create, shuffle, and encrypt deck
+            const deck = shuffleDeck(generateDeck());
+            const seed = generateSeed();
+            const encryptedDeck = encryptDeck(deck, seed);
+
+            console.log('[createRoom] Encrypted deck length:', encryptedDeck.length);
+            console.log('[createRoom] Seed:', seed);
+
+            // Decrypt first card and save to DB
+            const firstCard = decryptCard(encryptedDeck, seed, 0);
+            console.log('[createRoom] First card:', firstCard);
 
             // Create room in database
             const { data, error } = await supabase
                 .from('game_rooms')
                 .insert({
                     host_id: this.userId,
-                    deck: deck,
+                    encrypted_deck: encryptedDeck,
+                    deck_seed: seed,
+                    current_card: firstCard,  // Save decrypted card
                     status: 'waiting',
                     current_turn: 'host',
                 })
@@ -87,6 +99,26 @@ export class MultiplayerService {
                 console.error('[MultiplayerService] Room not found');
                 throw new Error('Room not found');
             }
+
+            // Check if this is a reconnection
+            const isMyRoom = room.host_id === this.userId || room.guest_id === this.userId;
+            const isReconnecting = isMyRoom && room.status === 'playing';
+
+            if (isReconnecting) {
+                // Reconnection - just set roomId and clear disconnect state
+                console.log('[MultiplayerService] Reconnecting to room');
+                this.roomId = roomId;
+
+                // Clear disconnect state if I was disconnected
+                const myRole = room.host_id === this.userId ? 'host' : 'guest';
+                if (room.disconnected_player === myRole) {
+                    await this.handleReconnect();
+                }
+
+                return room;
+            }
+
+            // Normal join flow - must be waiting status
             if (room.status !== 'waiting') {
                 console.error('[MultiplayerService] Room not available, status:', room.status);
                 throw new Error('Room is not available');
@@ -96,7 +128,7 @@ export class MultiplayerService {
                 throw new Error('Room is full');
             }
 
-            // Join room
+            // Join room as guest
             console.log('[MultiplayerService] Updating room with guest_id:', this.userId);
             const { data, error } = await supabase
                 .from('game_rooms')
@@ -115,7 +147,11 @@ export class MultiplayerService {
                 throw error;
             }
 
-            this.roomId = roomId;
+            if (!data) {
+                throw new Error('Failed to join room');
+            }
+
+            this.roomId = data.id;
             console.log('[MultiplayerService] Successfully joined room:', data);
             return data;
         } catch (error) {
@@ -146,7 +182,19 @@ export class MultiplayerService {
     }
 
     /**
-     * Make a turn (prediction)
+     * Get current card from encrypted deck
+     */
+    private async getCurrentCard(room: GameRoom): Promise<Card | null> {
+        try {
+            return decryptCard(room.encrypted_deck, room.deck_seed, room.current_card_index);
+        } catch (error) {
+            console.error('Error decrypting card:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Make a turn (HYBRID APPROACH - server logic, client animations)
      */
     async makeTurn(prediction: Prediction): Promise<{ correct: boolean; totalPoints: number }> {
         if (!this.roomId) throw new Error('Not in a room');
@@ -163,8 +211,8 @@ export class MultiplayerService {
                 throw new Error('Not your turn');
             }
 
-            // Get current card
-            const currentCard = room.deck[room.current_card_index];
+            // Get current card (decrypt from encrypted deck)
+            const currentCard = await this.getCurrentCard(room);
             if (!currentCard) throw new Error('No more cards');
 
             // Calculate result
@@ -179,29 +227,42 @@ export class MultiplayerService {
             // Determine next turn
             const nextTurn = playerRole === 'host' ? 'guest' : 'host';
 
-            // Check if game is finished
-            const isLastCard = room.current_card_index >= room.deck.length - 1;
+            // Check if game is finished (52 cards total)
+            const isLastCard = room.current_card_index >= 51;
             const newStatus = isLastCard ? 'finished' : 'playing';
 
             let winner = null;
-            if (isLastCard) {
-                if (room.host_score > room.guest_score) winner = 'host';
-                else if (room.guest_score > room.host_score) winner = 'guest';
-                else winner = 'draw';
+            if (newStatus === 'finished') {
+                winner = newScore > (playerRole === 'host' ? room.guest_score : room.host_score)
+                    ? playerRole
+                    : newScore < (playerRole === 'host' ? room.guest_score : room.host_score)
+                        ? (playerRole === 'host' ? 'guest' : 'host')
+                        : 'draw';
             }
 
-            // Update room
+            // Decrypt next card (if not last card)
+            const nextCardIndex = room.current_card_index + 1;
+            const nextCard = !isLastCard ? decryptCard(room.encrypted_deck, room.deck_seed, nextCardIndex) : null;
+
+            // Clear player's choice after turn
+            const choiceField = playerRole === 'host' ? 'host_current_choice' : 'guest_current_choice';
+
+            // Update room - set card_revealed for client animation sync
             const { error: updateError } = await supabase
                 .from('game_rooms')
                 .update({
                     [scoreField]: newScore,
                     [streakField]: newStreak,
-                    current_card_index: room.current_card_index + 1,
-                    current_turn: isLastCard ? null : nextTurn,
+                    current_card_index: nextCardIndex,
+                    current_card: nextCard,
+                    current_turn: nextTurn,
+                    turn_started_at: new Date().toISOString(),
                     last_prediction: prediction,
                     last_result: result,
                     status: newStatus,
                     winner: winner,
+                    [choiceField]: null,
+                    card_revealed: true, // Client will animate based on this
                 })
                 .eq('id', this.roomId);
 
@@ -237,10 +298,209 @@ export class MultiplayerService {
     }
 
     /**
+     * Hide card (reset card_revealed to false)
+     */
+    async hideCard(): Promise<void> {
+        if (!this.roomId) return;
+
+        await supabase
+            .from('game_rooms')
+            .update({ card_revealed: false })
+            .eq('id', this.roomId);
+    }
+
+    /**
+     * Save player's current choice (before submitting turn)
+     * This allows opponent to see what you're choosing in real-time
+     */
+    async savePlayerChoice(prediction: Prediction): Promise<void> {
+        if (!this.roomId || !this.userId) return;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+            const choiceField = playerRole === 'host' ? 'host_current_choice' : 'guest_current_choice';
+
+            let choiceData: { type: 'suit' | 'color' | 'value'; value: string } | null = null;
+
+            // Convert Prediction to choice format
+            if (prediction.mode === 'color' && prediction.color) {
+                choiceData = { type: 'color', value: prediction.color };
+            } else if (prediction.mode === 'suit' && prediction.suit) {
+                choiceData = { type: 'suit', value: prediction.suit };
+            } else if (prediction.mode === 'rank' && prediction.rank) {
+                choiceData = { type: 'value', value: prediction.rank };
+            } else if (prediction.mode === 'full' && prediction.suit && prediction.rank) {
+                // For full card, show both suit and rank
+                choiceData = { type: 'value', value: `${prediction.rank} ${prediction.suit}` };
+            }
+
+            // Save choice to database
+            await supabase
+                .from('game_rooms')
+                .update({
+                    [choiceField]: choiceData
+                })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error saving player choice:', error);
+        }
+    }
+
+    /**
+     * Confirm player's choice (when clicking "Сделать выбор" button)
+     * This makes the bubble turn green and scale up
+     */
+    async confirmPlayerChoice(): Promise<void> {
+        if (!this.roomId || !this.userId) return;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+            const choiceField = playerRole === 'host' ? 'host_current_choice' : 'guest_current_choice';
+            const currentChoice = playerRole === 'host' ? room.host_current_choice : room.guest_current_choice;
+
+            if (!currentChoice) return;
+
+            // Mark choice as confirmed
+            await supabase
+                .from('game_rooms')
+                .update({
+                    [choiceField]: { ...currentChoice, confirmed: true }
+                })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error confirming player choice:', error);
+        }
+    }
+
+    /**
+     * Reveal card (show face) - syncs for both players
+     */
+    async revealCard(): Promise<void> {
+        if (!this.roomId) return;
+
+        try {
+            await supabase
+                .from('game_rooms')
+                .update({ card_revealed: true })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error revealing card:', error);
+        }
+    }
+
+    /**
+     * Get current card from encrypted deck
+     */
+    private async getCurrentCard(room: GameRoom): Promise<Card | null> {
+        try {
+            return decryptCard(room.encrypted_deck, room.deck_seed, room.current_card_index);
+        } catch (error) {
+            console.error('Error decrypting card:', error);
+            return null;
+        }
+    }
+    /**
+     * Handle player disconnect - set deadline for reconnection
+     */
+    async handleDisconnect(playerRole: 'host' | 'guest', roomId?: string): Promise<void> {
+        const targetRoomId = roomId || this.roomId;
+        if (!targetRoomId) {
+            console.error('[handleDisconnect] No roomId available');
+            return;
+        }
+
+        try {
+            const deadline = new Date(Date.now() + 60000); // 60 seconds grace period
+
+            await supabase
+                .from('game_rooms')
+                .update({
+                    disconnected_player: playerRole,
+                    disconnect_time: new Date().toISOString(),
+                    reconnection_deadline: deadline.toISOString(),
+                })
+                .eq('id', targetRoomId);
+
+            console.log(`[Disconnect] Player ${playerRole} disconnected, deadline:`, deadline);
+        } catch (error) {
+            console.error('Error handling disconnect:', error);
+        }
+    }
+
+    /**
+     * Handle player reconnect - clear disconnect state
+     */
+    async handleReconnect(): Promise<void> {
+        if (!this.roomId) return;
+
+        try {
+            await supabase
+                .from('game_rooms')
+                .update({
+                    disconnected_player: null,
+                    disconnect_time: null,
+                    reconnection_deadline: null,
+                })
+                .eq('id', this.roomId);
+
+            console.log('[Reconnect] Player reconnected successfully');
+        } catch (error) {
+            console.error('Error handling reconnect:', error);
+        }
+    }
+
+    /**
+     * Check if reconnection timeout has expired
+     */
+    async checkReconnectionTimeout(): Promise<boolean> {
+        if (!this.roomId) return false;
+
+        try {
+            const room = await this.getRoom();
+            if (!room || !room.reconnection_deadline) return false;
+
+            const deadline = new Date(room.reconnection_deadline);
+            const now = new Date();
+
+            if (now > deadline) {
+                // Timeout expired - end game
+                const winner = room.disconnected_player === 'host' ? 'guest' : 'host';
+
+                await supabase
+                    .from('game_rooms')
+                    .update({
+                        status: 'finished',
+                        winner: winner,
+                    })
+                    .eq('id', this.roomId);
+
+                console.log(`[Timeout] Reconnection timeout expired, winner: ${winner}`);
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error checking reconnection timeout:', error);
+            return false;
+        }
+    }
+
+    /**
      * Subscribe to room updates
      */
     subscribeToRoom(callback: (room: GameRoom) => void): () => void {
-        if (!this.roomId) throw new Error('Not in a room');
+        if (!this.roomId) {
+            console.warn('[subscribeToRoom] No roomId set, skipping subscription');
+            return () => { }; // Return empty cleanup function
+        }
+
+        console.log('[subscribeToRoom] Setting up subscription for room:', this.roomId);
 
         this.subscription = supabase
             .channel(`room:${this.roomId}`)
@@ -253,14 +513,22 @@ export class MultiplayerService {
                     filter: `id=eq.${this.roomId}`,
                 },
                 (payload) => {
+                    console.log('[subscribeToRoom] Received UPDATE:', {
+                        animation_state: (payload.new as any).animation_state,
+                        card_revealed: (payload.new as any).card_revealed,
+                        current_turn: (payload.new as any).current_turn
+                    });
                     callback(payload.new as GameRoom);
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('[subscribeToRoom] Subscription status:', status);
+            });
 
         // Return unsubscribe function
         return () => {
             if (this.subscription) {
+                console.log('[subscribeToRoom] Unsubscribing from room');
                 supabase.removeChannel(this.subscription);
                 this.subscription = null;
             }
@@ -344,6 +612,122 @@ export class MultiplayerService {
         console.log('[MultiplayerService] checkPrediction result:', result);
 
         return result;
+    }
+
+    /**
+     * Update player presence (heartbeat)
+     */
+    async updatePlayerPresence(): Promise<void> {
+        if (!this.roomId) return;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+            const now = Date.now();
+
+            const updatedLastSeen = {
+                ...room.player_last_seen,
+                [playerRole]: now
+            };
+
+            await supabase
+                .from('game_rooms')
+                .update({
+                    player_last_seen: updatedLastSeen,
+                    // Clear disconnected status if player is back
+                    disconnected_player: room.disconnected_player === playerRole ? null : room.disconnected_player
+                })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error updating presence:', error);
+        }
+    }
+
+    /**
+     * Check if opponent is connected
+     */
+    async checkOpponentConnection(): Promise<boolean> {
+        if (!this.roomId) return false;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return false;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+            const opponentRole = playerRole === 'host' ? 'guest' : 'host';
+
+            const opponentLastSeen = room.player_last_seen[opponentRole];
+            if (!opponentLastSeen) return false;
+
+            const now = Date.now();
+            const timeSinceLastSeen = now - opponentLastSeen;
+
+            // Consider disconnected if no activity for 15 seconds
+            return timeSinceLastSeen < 15000;
+        } catch (error) {
+            console.error('Error checking opponent connection:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Mark opponent as disconnected
+     */
+    async markOpponentDisconnected(): Promise<void> {
+        if (!this.roomId) return;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+            const opponentRole = playerRole === 'host' ? 'guest' : 'host';
+
+            await supabase
+                .from('game_rooms')
+                .update({
+                    disconnected_player: opponentRole
+                })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error marking opponent disconnected:', error);
+        }
+    }
+
+    /**
+     * Skip turn (timeout or disconnection)
+     * Passes turn to opponent WITHOUT moving to next card
+     */
+    async skipTurn(): Promise<void> {
+        if (!this.roomId) return;
+
+        try {
+            const room = await this.getRoom();
+            if (!room) return;
+
+            const playerRole = room.host_id === this.userId ? 'host' : 'guest';
+
+            // Only skip if it's actually this player's turn
+            if (room.current_turn !== playerRole) return;
+
+            // Determine next turn
+            const nextTurn = playerRole === 'host' ? 'guest' : 'host';
+
+            // Update room - pass turn to opponent, keep same card
+            await supabase
+                .from('game_rooms')
+                .update({
+                    // НЕ увеличиваем current_card_index - карта остается та же!
+                    current_turn: nextTurn,
+                    turn_started_at: new Date().toISOString(),
+                })
+                .eq('id', this.roomId);
+        } catch (error) {
+            console.error('Error skipping turn:', error);
+            throw error;
+        }
     }
 }
 
