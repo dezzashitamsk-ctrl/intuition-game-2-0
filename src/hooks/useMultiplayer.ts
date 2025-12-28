@@ -130,7 +130,7 @@ export function useMultiplayer() {
     /**
      * Get current card
      */
-    const currentCard = room?.deck?.[room.current_card_index];
+    const currentCard = room?.current_card;
 
     /**
      * Get opponent info

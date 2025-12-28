@@ -395,17 +395,6 @@ export class MultiplayerService {
     }
 
     /**
-     * Get current card from encrypted deck
-     */
-    private async getCurrentCard(room: GameRoom): Promise<Card | null> {
-        try {
-            return decryptCard(room.encrypted_deck, room.deck_seed, room.current_card_index);
-        } catch (error) {
-            console.error('Error decrypting card:', error);
-            return null;
-        }
-    }
-    /**
      * Handle player disconnect - set deadline for reconnection
      */
     async handleDisconnect(playerRole: 'host' | 'guest', roomId?: string): Promise<void> {
@@ -625,17 +614,12 @@ export class MultiplayerService {
             if (!room) return;
 
             const playerRole = room.host_id === this.userId ? 'host' : 'guest';
-            const now = Date.now();
-
-            const updatedLastSeen = {
-                ...room.player_last_seen,
-                [playerRole]: now
-            };
+            const heartbeatField = playerRole === 'host' ? 'host_last_heartbeat' : 'guest_last_heartbeat';
 
             await supabase
                 .from('game_rooms')
                 .update({
-                    player_last_seen: updatedLastSeen,
+                    [heartbeatField]: new Date().toISOString(),
                     // Clear disconnected status if player is back
                     disconnected_player: room.disconnected_player === playerRole ? null : room.disconnected_player
                 })
@@ -657,12 +641,14 @@ export class MultiplayerService {
 
             const playerRole = room.host_id === this.userId ? 'host' : 'guest';
             const opponentRole = playerRole === 'host' ? 'guest' : 'host';
+            const opponentHeartbeatField = opponentRole === 'host' ? 'host_last_heartbeat' : 'guest_last_heartbeat';
 
-            const opponentLastSeen = room.player_last_seen[opponentRole];
-            if (!opponentLastSeen) return false;
+            const opponentLastHeartbeat = room[opponentHeartbeatField];
+            if (!opponentLastHeartbeat) return false;
 
-            const now = Date.now();
-            const timeSinceLastSeen = now - opponentLastSeen;
+            const now = new Date();
+            const lastHeartbeatTime = new Date(opponentLastHeartbeat);
+            const timeSinceLastSeen = now.getTime() - lastHeartbeatTime.getTime();
 
             // Consider disconnected if no activity for 15 seconds
             return timeSinceLastSeen < 15000;
