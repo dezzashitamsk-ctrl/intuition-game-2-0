@@ -206,8 +206,20 @@ export class MultiplayerService {
             // Determine player role
             const playerRole = room.host_id === this.userId ? 'host' : 'guest';
 
+            console.log('[makeTurn] Turn check:', {
+                playerRole,
+                current_turn: room.current_turn,
+                card_revealed: room.card_revealed,
+                isMyTurn: room.current_turn === playerRole
+            });
+
             // Check if it's player's turn
             if (room.current_turn !== playerRole) {
+                console.error('[makeTurn] Not your turn!', {
+                    playerRole,
+                    current_turn: room.current_turn,
+                    card_revealed: room.card_revealed
+                });
                 throw new Error('Not your turn');
             }
 
@@ -305,7 +317,10 @@ export class MultiplayerService {
 
         await supabase
             .from('game_rooms')
-            .update({ card_revealed: false })
+            .update({
+                card_revealed: false,
+                turn_started_at: new Date().toISOString() // Reset timer for next player
+            })
             .eq('id', this.roomId);
     }
 
@@ -491,6 +506,14 @@ export class MultiplayerService {
 
         console.log('[subscribeToRoom] Setting up subscription for room:', this.roomId);
 
+        // Track last important state to filter heartbeat-only updates
+        let lastState = {
+            card_revealed: null as boolean | null,
+            current_turn: null as string | null,
+            status: null as string | null,
+            current_card_index: null as number | null
+        };
+
         this.subscription = supabase
             .channel(`room:${this.roomId}`)
             .on(
@@ -502,12 +525,32 @@ export class MultiplayerService {
                     filter: `id=eq.${this.roomId}`,
                 },
                 (payload) => {
-                    console.log('[subscribeToRoom] Received UPDATE:', {
-                        animation_state: (payload.new as any).animation_state,
-                        card_revealed: (payload.new as any).card_revealed,
-                        current_turn: (payload.new as any).current_turn
-                    });
-                    callback(payload.new as GameRoom);
+                    const newRoom = payload.new as GameRoom;
+
+                    // Check if this is a meaningful update (not just heartbeat)
+                    const isImportant =
+                        newRoom.card_revealed !== lastState.card_revealed ||
+                        newRoom.current_turn !== lastState.current_turn ||
+                        newRoom.status !== lastState.status ||
+                        newRoom.current_card_index !== lastState.current_card_index;
+
+                    if (isImportant) {
+                        console.log('[subscribeToRoom] Important UPDATE:', {
+                            card_revealed: newRoom.card_revealed,
+                            current_turn: newRoom.current_turn
+                        });
+
+                        // Update last state
+                        lastState = {
+                            card_revealed: newRoom.card_revealed,
+                            current_turn: newRoom.current_turn,
+                            status: newRoom.status,
+                            current_card_index: newRoom.current_card_index
+                        };
+
+                        callback(newRoom);
+                    }
+                    // Silently ignore heartbeat-only updates
                 }
             )
             .subscribe((status) => {

@@ -119,8 +119,8 @@ export const PlayerChoiceBubble: React.FC<PlayerChoiceBubbleProps> = ({
                 className={`
                     absolute z-30
                     ${position === 'left'
-                        ? 'md:left-full md:ml-6 md:top-1/2 md:-translate-y-1/2 left-1/2 -translate-x-1/2 -top-16'
-                        : 'md:right-full md:mr-6 md:top-1/2 md:-translate-y-1/2 right-1/2 translate-x-1/2 -top-16'
+                        ? 'md:left-full md:ml-6 md:top-1/2 md:-translate-y-1/2 left-1/2 -translate-x-1/2 bottom-full mb-2'
+                        : 'md:right-full md:mr-6 md:top-1/2 md:-translate-y-1/2 right-1/2 translate-x-1/2 bottom-full mb-2'
                     }
                 `}
             >

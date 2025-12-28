@@ -444,6 +444,90 @@ export const Game: React.FC = () => {
                                 />
                             </div>
 
+                            {/* Речевые пузыри бота - МОБИЛЬНАЯ ВЕРСИЯ */}
+                            <div className="md:hidden mt-4">
+                                {/* Пузырь "Думаю..." */}
+                                <AnimatePresence>
+                                    {botThinking && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                                            transition={{
+                                                duration: 0.3,
+                                                ease: "easeOut",
+                                                scale: { type: "spring", stiffness: 200, damping: 15 }
+                                            }}
+                                            className="flex items-center gap-3"
+                                        >
+                                            {/* Аватарка бота */}
+                                            <div className="flex-shrink-0">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/20 to-purple-600/20">
+                                                    <img
+                                                        src="/avatars/bot.jpg"
+                                                        alt="Бот"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Пузырь */}
+                                            <div className="flex-1 glass-card px-4 py-3 rounded-2xl border border-blue-400/30 shadow-xl shadow-blue-500/20 backdrop-blur-md">
+                                                <p className="text-blue-400 font-medium flex items-center justify-center gap-2 text-sm">
+                                                    <motion.span
+                                                        animate={{
+                                                            rotate: [0, 10, -10, 0],
+                                                            scale: [1, 1.1, 1.1, 1]
+                                                        }}
+                                                        transition={{ duration: 0.6, repeat: Infinity }}
+                                                        className="text-lg"
+                                                    >
+                                                        🤔
+                                                    </motion.span>
+                                                    {botThinking}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Пузырь приветствия */}
+                                <AnimatePresence>
+                                    {botGreeting && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                                            transition={{
+                                                duration: 0.3,
+                                                ease: "easeOut",
+                                                scale: { type: "spring", stiffness: 200, damping: 15 }
+                                            }}
+                                            className="flex items-center gap-3 mt-2"
+                                        >
+                                            {/* Аватарка бота */}
+                                            <div className="flex-shrink-0">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/20 to-purple-600/20">
+                                                    <img
+                                                        src="/avatars/bot.jpg"
+                                                        alt="Бот"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Пузырь */}
+                                            <div className="flex-1 glass-card px-4 py-3 rounded-2xl border border-blue-400/30 shadow-xl shadow-blue-500/20 backdrop-blur-md">
+                                                <p className="text-gray-300 font-medium flex items-center justify-center gap-2 text-sm italic">
+                                                    <span className="text-base">💬</span>
+                                                    {botGreeting}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
                             {/* Счетчик карт для десктопа */}
                             <div className="hidden md:block glass-dark rounded-xl px-6 py-4 text-center border-2 border-white/10">
                                 <div className="text-4xl font-bold text-blue-400 font-[family-name:var(--font-orbitron)]">{gameState.deck.length}</div>

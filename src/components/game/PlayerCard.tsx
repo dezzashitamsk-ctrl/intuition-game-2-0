@@ -53,6 +53,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             <div className={`
                 relative glass-card rounded-3xl p-6 min-w-[280px]
                 border-2 transition-all duration-250 will-change-transform
+                overflow-visible
                 ${isActive
                     ? '!bg-gradient-to-br !from-yellow-500/15 !via-amber-500/10 !to-yellow-500/5 shadow-[0_0_40px_rgba(251,191,36,0.4)]'
                     : 'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]'}

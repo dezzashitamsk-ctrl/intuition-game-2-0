@@ -10,14 +10,67 @@ interface CompactPlayerProps {
     color: string
     name: string
     isBot?: boolean
+    playerChoice?: { type: 'suit' | 'color' | 'value'; value: string; confirmed?: boolean } | null
 }
 
-export function CompactPlayer({ score, previousScore, isActive, position, color, name, isBot }: CompactPlayerProps) {
+export function CompactPlayer({ score, previousScore, isActive, position, color, name, isBot, playerChoice }: CompactPlayerProps) {
     const scoreChanged = previousScore !== undefined && previousScore !== score
+
+    // Функция для получения красивого текста выбора на русском
+    const getChoiceDisplay = (choice: { type: string; value: string }) => {
+        switch (choice.type) {
+            case 'suit':
+                const suitEmoji = {
+                    'hearts': '♥️',
+                    'diamonds': '♦️',
+                    'clubs': '♣️',
+                    'spades': '♠️'
+                }[choice.value] || '?';
+                const suitName = {
+                    'hearts': 'Черви',
+                    'diamonds': 'Бубны',
+                    'clubs': 'Трефы',
+                    'spades': 'Пики'
+                }[choice.value] || choice.value;
+                return { emoji: suitEmoji, text: suitName };
+
+            case 'color':
+                const colorEmoji = choice.value === 'red' ? '🔴' : '⚫';
+                const colorName = choice.value === 'red' ? 'Красная' : 'Черная';
+                return { emoji: colorEmoji, text: colorName };
+
+            case 'value':
+                if (choice.value.includes(' ')) {
+                    const [rank, suit] = choice.value.split(' ');
+                    const rankTranslation: Record<string, string> = {
+                        'J': 'Валет', 'Q': 'Дама', 'K': 'Король', 'A': 'Туз'
+                    };
+                    const translatedRank = rankTranslation[rank] || rank;
+                    const suitTranslation: Record<string, string> = {
+                        'hearts': 'Черви', 'diamonds': 'Бубны',
+                        'clubs': 'Трефы', 'spades': 'Пики'
+                    };
+                    const translatedSuit = suitTranslation[suit] || suit;
+                    const suitEmoji = {
+                        'hearts': '♥️', 'diamonds': '♦️',
+                        'clubs': '♣️', 'spades': '♠️'
+                    }[suit] || '';
+                    return { emoji: suitEmoji, text: `${translatedRank} ${translatedSuit}` };
+                }
+                const rankTranslation: Record<string, string> = {
+                    'J': 'Валет', 'Q': 'Дама', 'K': 'Король', 'A': 'Туз'
+                };
+                return { emoji: null, text: rankTranslation[choice.value] || choice.value };
+
+            default:
+                return { emoji: null, text: choice.value };
+        }
+    };
 
     return (
         <motion.div
             className={`
+                relative
                 ${position === 'left' || position === 'right'
                     ? `absolute top-1/2 -translate-y-1/2 ${position === 'left' ? '-left-16' : '-right-16'}`
                     : ''}
@@ -27,6 +80,40 @@ export function CompactPlayer({ score, previousScore, isActive, position, color,
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
         >
+            {/* Player Choice Bubble - только для inline позиции (мобильные) */}
+            {position === 'inline' && playerChoice && (() => {
+                const { emoji, text } = getChoiceDisplay(playerChoice);
+                const isOpponent = name.includes('Оппонент') || name.includes('2') || isBot;
+
+                return (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className={`
+                            absolute z-20
+                            ${isOpponent ? '-left-24 top-0' : '-right-24 top-0'}
+                        `}
+                    >
+                        <div className={`
+                            glass-card px-3 py-2 rounded-xl 
+                            border-2 shadow-xl backdrop-blur-md 
+                            ${isOpponent
+                                ? 'border-purple-400/40 shadow-purple-500/30'
+                                : 'border-blue-400/40 shadow-blue-500/30'}
+                        `}>
+                            <p className={`
+                                font-bold flex items-center gap-1.5 whitespace-nowrap text-xs
+                                ${isOpponent ? 'text-purple-200' : 'text-blue-200'}
+                            `}>
+                                {emoji && <span className="text-base">{emoji}</span>}
+                                <span className="font-[family-name:var(--font-orbitron)]">{text}</span>
+                            </p>
+                        </div>
+                    </motion.div>
+                );
+            })()}
+
             {/* Аватарка */}
             <motion.div
                 className={`

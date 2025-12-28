@@ -113,8 +113,8 @@ export default function OnlinePage() {
         );
     }
 
-    // Show waiting room if host is waiting for opponent
-    if (isWaiting && playerRole === 'host') {
+    // Show waiting room if host is waiting for opponent OR if guest hasn't joined yet
+    if ((isWaiting && playerRole === 'host') || (playerRole === 'host' && !room.guest_id)) {
         return (
             <div className="min-h-screen relative flex items-center justify-center">
                 <AnimatedBackground variant="game" />

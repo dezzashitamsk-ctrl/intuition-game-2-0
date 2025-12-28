@@ -433,6 +433,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({
                                 isActive={isMyTurn}
                                 timeLeft={isMyTurn ? timeLeft : undefined}
                                 gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+                                playerChoice={playerRole === 'host' ? room.host_current_choice : room.guest_current_choice}
                             />
                             {/* Мой таймер - активен когда мой ход */}
                             <CompactTimer
@@ -488,7 +489,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({
                                     />
                                 </div>
 
-                                <div className={`card - wrapper ${showCardFace ? 'is-flipped' : ''} `}>
+                                <div className={`card-wrapper ${showCardFace ? 'is-flipped' : ''}`}>
                                     <Card card={displayCard} isHidden={true} />
                                 </div>
                             </div>
@@ -503,6 +504,7 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({
                                     position="inline"
                                     color="border-blue-500"
                                     name="Вы"
+                                    playerChoice={playerRole === 'host' ? room.host_current_choice : room.guest_current_choice}
                                 />
 
                                 {/* Счетчик карт */}
@@ -520,6 +522,17 @@ export const OnlineGame: React.FC<OnlineGameProps> = ({
                                     position="inline"
                                     color="border-purple-500"
                                     name="Оппонент"
+                                    playerChoice={playerRole === 'host' ? room.guest_current_choice : room.host_current_choice}
+                                />
+                            </div>
+
+                            {/* Таймер для мобильных */}
+                            <div className="md:hidden mt-4 flex justify-center">
+                                <CompactTimer
+                                    timeLeft={timeLeft}
+                                    totalTime={room.turn_timeout_seconds}
+                                    isActive={true}
+                                    onTimeout={() => multiplayerService.skipTurn()}
                                 />
                             </div>
 
