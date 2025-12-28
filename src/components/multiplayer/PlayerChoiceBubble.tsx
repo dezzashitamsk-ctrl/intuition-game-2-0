@@ -116,10 +116,16 @@ export const PlayerChoiceBubble: React.FC<PlayerChoiceBubbleProps> = ({
                         damping: isConfirmed ? 10 : 12
                     }
                 }}
-                className={`absolute ${position === 'left' ? 'left-full ml-6' : 'right-full mr-6'} top-1/2 -translate-y-1/2 z-30`}
+                className={`
+                    absolute z-30
+                    ${position === 'left'
+                        ? 'md:left-full md:ml-6 md:top-1/2 md:-translate-y-1/2 left-1/2 -translate-x-1/2 -top-16'
+                        : 'md:right-full md:mr-6 md:top-1/2 md:-translate-y-1/2 right-1/2 translate-x-1/2 -top-16'
+                    }
+                `}
             >
-                {/* Треугольный хвостик */}
-                <div className={`absolute ${position === 'left' ? 'right-full mr-[-1px]' : 'left-full ml-[-1px]'} top-1/2 -translate-y-1/2`}>
+                {/* Треугольный хвостик - только на desktop */}
+                <div className={`hidden md:block absolute ${position === 'left' ? 'right-full mr-[-1px]' : 'left-full ml-[-1px]'} top-1/2 -translate-y-1/2`}>
                     <svg width="16" height="16" viewBox="0 0 16 16" className="drop-shadow-lg">
                         <path
                             d={position === 'left' ? 'M 16 8 L 0 0 L 0 16 Z' : 'M 0 8 L 16 0 L 16 16 Z'}
@@ -130,17 +136,17 @@ export const PlayerChoiceBubble: React.FC<PlayerChoiceBubbleProps> = ({
                     </svg>
                 </div>
 
-                {/* Пузырь с выбором - ОЧЕНЬ БОЛЬШОЙ + ЗЕЛЕНЫЙ при подтверждении */}
-                <div className={`glass-dark px-8 py-4 rounded-2xl border-2 backdrop-blur-md transition-all duration-300
+                {/* Пузырь с выбором - адаптивный размер */}
+                <div className={`glass-dark px-4 md:px-8 py-2 md:py-4 rounded-xl md:rounded-2xl border-2 backdrop-blur-md transition-all duration-300
                     ${isConfirmed
                         ? 'border-green-400/60 shadow-[0_0_40px_rgba(34,197,94,0.5)]'
                         : 'border-purple-400/40 shadow-xl shadow-purple-500/30'
                     }`}>
-                    <p className={`font-bold flex items-center gap-4 whitespace-nowrap transition-colors duration-300
+                    <p className={`font-bold flex items-center gap-2 md:gap-4 whitespace-nowrap transition-colors duration-300
                         ${isConfirmed ? 'text-green-100' : 'text-purple-100'}`}>
-                        {emoji && <span className="text-4xl">{emoji}</span>}
+                        {emoji && <span className="text-2xl md:text-4xl">{emoji}</span>}
                         {/* Используем Orbitron только для текста, не для цифр. Цифры крупнее */}
-                        <span className={`${isNumeric ? 'text-2xl' : 'text-xl font-[family-name:var(--font-orbitron)]'}`}>
+                        <span className={`${isNumeric ? 'text-lg md:text-2xl' : 'text-base md:text-xl font-[family-name:var(--font-orbitron)]'}`}>
                             {text}
                         </span>
                     </p>
